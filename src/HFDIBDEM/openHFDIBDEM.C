@@ -187,7 +187,6 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         }
     }
 
-
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
 
     dictionary patchDic = demDic.subDict("collisionPatches");
@@ -787,7 +786,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         bodiesPositionList[Pstream::myProcNo()].clear();
 
         verletList_.update(immersedBodies_);
-
         DynamicLabelList wallContactIB;
         wallContactIBTable.clear();
         forAll (immersedBodies_,bodyId)
@@ -828,6 +826,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
             {
                 wallContactPerProc = 1;
             }
+
             for(int assignProc = Pstream::myProcNo()*wallContactPerProc; assignProc < min((Pstream::myProcNo()+1)*wallContactPerProc,wallContactIB.size()); assignProc++)
             {
                 immersedBody& cIb(immersedBodies_[wallContactIB[assignProc]]);
@@ -895,7 +894,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         }
 
         wallContactIB.clear();
-
         DynamicList<prtSubContactInfo*> contactList;
         // check only pairs whose bounding boxes are intersected for the contact
         label vListSize(0);
@@ -1080,6 +1078,58 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
             }
         }
 
+        scalar cRadius = immersedBodies_[0].getGeomModel().getDC() / 2;
+        scalar tRadius = immersedBodies_[1].getGeomModel().getDC() / 2;
+        vector tCenter = immersedBodies_[1].getGeomModel().getCoM();
+
+        vector centerDir = immersedBodies_[0].getGeomModel().getCoM()
+                            - tCenter;
+
+        scalar d = mag(centerDir);
+
+        scalar surfDist = d - (cRadius + tRadius);
+        surfDist = surfDist < SMALL ? SMALL : surfDist;
+
+        Info << "DLVO: Testing DLVO___________-" << endl;
+        Info << "DLVO: surfDist: " << surfDist << endl;
+
+        scalar A = 1e-20;
+        scalar F_WdV = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
+
+        scalar eps_0 = 8.854e-12;
+        scalar eps_r = 50;
+        scalar zeta = 2e-2;
+        scalar rec_Debye = 5e-9;
+
+        scalar F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(rec_Debye*exp(surfDist/rec_Debye)+rec_Debye);
+
+        Info << "DLVO: F_WdV: " << F_WdV << endl;
+        Info << "DLVO: F_elec: " << F_elec << endl;
+        scalar F_dlvo = F_WdV + F_elec;
+        Info << "DLVO: F_dlvo: " << F_dlvo << endl;
+
+        vector cDirNorm = centerDir/mag(centerDir);
+        vector F_c = F_dlvo * cDirNorm;
+        vector F_t = - F_c;
+        Info << "DLVO: F_c: " << F_c << endl;
+        Info << "DLVO: F_t: " << F_t << endl;
+
+        immersedBodies_[0].updateContactForces
+        (
+            forces(F_c, vector::zero)
+        );
+
+        immersedBodies_[1].updateContactForces
+        (
+            forces(F_t, vector::zero)
+        );
+
+        // reduce(resolvedPrtContacts,sumOp<label>());
+        // InfoH << basic_Info << " -- Possible Particle Contacts: " << possiblePrtContacts
+        //     << " Resolved Particle Contacts: " << resolvedPrtContacts
+        //     << " contactPerProc : " << ceil(possiblePrtContacts/Pstream::nProcs()) << endl;
+        // scalar maxCoNum = 0;
+        // label  bodyId = 0;
         forAll (immersedBodies_,ib)
         {
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);

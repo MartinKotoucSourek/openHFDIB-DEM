@@ -47,7 +47,7 @@ Contributors
 
 #include "fvcSmooth.H"
 #include "fvMeshSubset.H"
-#include "solverInfo.H" 
+#include "solverInfo.H"
 
 #define ORDER 2
 
@@ -569,7 +569,7 @@ void immersedBody::updateMovementComp
 
         const uniformDimensionedVectorField& g =
             mesh_.lookupObject<uniformDimensionedVectorField>("g");
-        
+
         vector FG(vector::zero);
         if(!solverInfo::getOnlyDEM())
             FG = geomModel_->getM0()*(1.0-rhoF_.value()
@@ -577,6 +577,8 @@ void immersedBody::updateMovementComp
         else
             FG = geomModel_->getM0()*g.value();
 
+        Info << "-- body "<< bodyId_ <<" Force FCoupling_.F  : " << FCoupling_.F << endl;
+        Info << "-- body "<< bodyId_ <<" Force FContact_.F  : " << FContact_.F << endl;
         vector F(FCoupling_.F);
         F += FContact_.F;
         F += FG;
