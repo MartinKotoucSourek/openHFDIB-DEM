@@ -577,6 +577,8 @@ void immersedBody::updateMovementComp
         else
             FG = geomModel_->getM0()*g.value();
 
+        Info << "-- body "<< bodyId_ <<" Force FCoupling_.F  : " << FCoupling_.F << endl;
+        Info << "-- body "<< bodyId_ <<" Force FContact_.F  : " << FContact_.F << endl;
         vector F(FCoupling_.F);
         F += FContact_.F;
         F += FG;
