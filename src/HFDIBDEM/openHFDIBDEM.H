@@ -63,16 +63,12 @@ Contributors
 #include "addModelRepeatRandomPosition.H"
 #include "addModelDistribution.H"
 
-// #include "contactModel.H"
 #include "leastSquaresInt.H"
 #include "lineInt.H"
-// #include "IOstream.H"
-// #include "virtualMesh.H"
 
-#include "verletList.H"
-//OS Time effitiency Testing
-#include "clockTime.H"
-//OS Time effitiency Testing
+#include "vCntcList.H"
+#include "vDlvoList.H"
+
 namespace Foam
 {
 
@@ -120,8 +116,11 @@ namespace Foam
     // mesh geometric directions
     vector geometricD_;
 
-    // Verlet list object
-    verletList verletList_;
+    // Verlet contact list object
+    vCntcList vCntcList_;
+
+    // Verlet DLVO list object
+    vDlvoList vDlvoList_;
 
     //record simulation for start from lastTime possibility
     bool recordSimulation_;
@@ -207,9 +206,8 @@ namespace Foam
     }
 
     void writeFirtsTimeBodiesInfo();
-    
-    void setSolverInfo();
 
+    void setSolverInfo();
  };
 }
 

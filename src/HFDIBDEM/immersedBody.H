@@ -50,6 +50,7 @@ Contributors
 #include "wallContactInfo.H"
 #include "interpolationInfo.H"
 #include "ibInterpolation.H"
+#include "dlvoClass.H"
 
 #include "virtualMesh.H"
 namespace Foam
@@ -94,6 +95,8 @@ namespace Foam
         autoPtr<ibContactVars> ibCntVars_;
 
         autoPtr<wallContactInfo> wallCntInfo_;
+
+        std::shared_ptr<dlvoClass> dlvo_;
 
         // precalculate cellPoints for better performace
         List<labelList>& cellPoints_;
@@ -469,6 +472,11 @@ namespace Foam
         wallContactInfo& getWallCntInfo()
         {
             return wallCntInfo_();
+        }
+
+        std::shared_ptr<dlvoClass>& getDlvo()
+        {
+            return dlvo_;
         }
 
         void recordBodyInfo(IOdictionary& dict, word path)

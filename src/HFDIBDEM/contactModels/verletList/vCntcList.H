@@ -26,7 +26,7 @@ InNamspace
     Foam
 
 Description
-    base class for Verlet lists
+    class for Verlet lists to optimize contact detection
 
 SourceFiles
     verletList.C
@@ -36,104 +36,40 @@ Contributors
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef verletList_H
-#define verletList_H
+#ifndef vCntcList_H
+#define vCntcList_H
 
-#include "dictionary.H"
-#include "fvCFD.H"
-#include "verletPoint.H"
-#include "verletContact.H"
-#include "immersedBody.H"
-
-#include <list>
-#include <map>
-#include <unordered_set>
+#include "verletList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-struct hashFunction
-{
-  size_t operator()(const std::pair<label, label> &x) const
-  {
-    return x.first ^ x.second;
-  }
-};
-
 /*---------------------------------------------------------------------------*\
                         Class verletList Declaration
 \*---------------------------------------------------------------------------*/
 
-class verletList
+class vCntcList : public verletList
 {
-    protected:
-
-    typedef DynamicList<label> DynamicLabelList;
-    typedef DynamicList<scalar> DynamicScalarList;
-    typedef DynamicList<vector> DynamicVectorList;
-    typedef DynamicList<point> DynamicPointList;
-
-    typedef std::pair<label, label> cPair;
-    typedef std::map<cPair, verletContact> cPairVcontactMap;
-
-    typedef std::unordered_set<cPair, hashFunction> cPairHasSet;
-
-    // List of all verlet boxes
-    std::list<std::shared_ptr<verletBox>> verletBoxes_;
-
-    List<std::list<std::shared_ptr<verletPoint>>> verletLists_;
-    // List for pairs of intersected Bodies in specific coordinate
-    List<cPairVcontactMap> cntNeighList_;
-    // List of possible contact du to intersection of bounding boxes.
-    // Pair is added to this list when it is present in all 3 cntNeighList_.
-    cPairHasSet posCntList_;
-
-    void swapVerletPoints(
-        std::shared_ptr<verletPoint> a,
-        std::shared_ptr<verletPoint> b,
-        label coord
-    );
-
-    void addCPairToCntNList(
-        cPair cPair,
-        label coord,
-        std::shared_ptr<verletPoint> a,
-        std::shared_ptr<verletPoint> b
-    );
-
     public:
 
     // Constructors ------------------------------------------------
-    verletList();
+    vCntcList();
 
     // Destructors -------------------------------------------------
-    virtual ~verletList();
+    virtual ~vCntcList();
 
     // Add new body to be tracked by Verlet list
-    virtual void addBodyToVList(immersedBody& ib) = 0;
+    void addBodyToVList(immersedBody& ib) override;
 
     // Remove body from Verlet list
-    void removeBodyFromVList(immersedBody& ib);
-
-    // More efficient initial soting
-    void initialSorting();
+    // void removeBodyFromVList(immersedBody& ib) override;
 
     // Update positions of bounding points
     // sort the list
     // solve potential intersections
-    virtual void update(PtrList<immersedBody>& ibs) = 0;
-
-    cPairHasSet::iterator begin()
-    {
-        return posCntList_.begin();
-    }
-
-    cPairHasSet::iterator end()
-    {
-        return posCntList_.end();
-    }
+    void update(PtrList<immersedBody>& ibs) override;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -22,27 +22,63 @@ License
     You should have received a copy of the GNU Lesser General Public License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
-Namspace
+InNamspace
     contactModel
 
 Description
-    namespace providing functions to solve contacts
+    methods to solve particle-particle contact
+
+SourceFiles
+    dlvoContact.C
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef contactModel_H
-#define contactModel_H
+#ifndef dlvoContact_H
+#define dlvoContact_H
+
+#include "dictionary.H"
+#include "fvCFD.H"
+// #include "fvMesh.H"
+
+#include "dlvoContactInfo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "prtContact.H"
-#include "wallContact.H"
-#include "dlvoContact.H"
-#include "cyclicContact.H"
-#include "materialInfo.H"
+namespace Foam
+{
+
+/*---------------------------------------------------------------------------*\
+                 Namespace contactModel functions Declaration
+\*---------------------------------------------------------------------------*/
+
+namespace contactModel
+{
+
+    Tuple2<forces,forces> solveDlvoContact_ArbShape(
+        dlvoContactInfo& cInfo
+    );
+
+    Tuple2<forces,forces> solveDlvoContact_Sphere
+    (
+        dlvoContactInfo& cInfo
+    );
+
+    Tuple2<forces,forces> solveDlvoContact_Cluster
+    (
+        dlvoContactInfo& cInfo
+    );
+
+    Tuple2<forces,forces> solveDlvoContact(
+        dlvoContactInfo& cInfo
+    );
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
