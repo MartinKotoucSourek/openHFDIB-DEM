@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*\
+ /*---------------------------------------------------------------------------*\
                         _   _ ____________ ___________    ______ ______ _    _
                        | | | ||  ___|  _  \_   _| ___ \   |  _  \|  ___| \  / |
   ___  _ __   ___ _ __ | |_| || |_  | | | | | | | |_/ /   | | | || |_  |  \/  |
@@ -22,27 +22,52 @@ License
     You should have received a copy of the GNU Lesser General Public License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
-Namspace
-    contactModel
+InNamspace
+    Foam
 
 Description
-    namespace providing functions to solve contacts
+    class for storage of dlvo variables
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef contactModel_H
-#define contactModel_H
+#ifndef dlvoClass_H
+#define dlvoClass_H
+
+#include "boundBox.H"
+#include "List.H"
+
+#include <memory>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "prtContact.H"
-#include "wallContact.H"
-#include "dlvoContact.H"
-#include "cyclicContact.H"
-#include "materialInfo.H"
+namespace Foam
+{
+
+/*---------------------------------------------------------------------------*\
+                        Class ibContactVars Declaration
+\*---------------------------------------------------------------------------*/
+
+class dlvoClass
+{
+    private:
+    List<std::shared_ptr<boundBox>> bBox_;
+
+    vector cutOff_;
+
+    public:
+    dlvoClass(const vector& cutOff);
+    ~dlvoClass();
+
+    void setBBoxes(List<std::shared_ptr<boundBox>> bBox);
+    List<std::shared_ptr<boundBox>> getBBoxes();
+};
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

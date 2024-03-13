@@ -69,7 +69,8 @@ Contributors
 // #include "IOstream.H"
 // #include "virtualMesh.H"
 
-#include "verletList.H"
+#include "vCntcList.H"
+#include "vDlvoList.H"
 //OS Time effitiency Testing
 #include "clockTime.H"
 //OS Time effitiency Testing
@@ -120,8 +121,11 @@ namespace Foam
     // mesh geometric directions
     vector geometricD_;
 
-    // Verlet list object
-    verletList verletList_;
+    // Verlet contact list object
+    vCntcList vCntcList_;
+
+    // Verlet DLVO list object
+    vDlvoList vDlvoList_;
 
     //record simulation for start from lastTime possibility
     bool recordSimulation_;
@@ -207,7 +211,7 @@ namespace Foam
     }
 
     void writeFirtsTimeBodiesInfo();
-    
+
     void setSolverInfo();
 
  };

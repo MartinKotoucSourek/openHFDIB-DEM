@@ -44,6 +44,8 @@ Contributors
 #include "defineExternVars.H"
 #include "parameters.H"
 
+#include "dlvoContactInfo.H"
+
 #define ORDER 2
 
 using namespace Foam;
@@ -413,7 +415,8 @@ void openHFDIBDEM::initialize
                 {
                     immersedBodies_[addIBPos].initSyncWithFlow(U);
                 }
-                verletList_.addBodyToVList(immersedBodies_[addIBPos]);
+                vCntcList_.addBodyToVList(immersedBodies_[addIBPos]);
+                vDlvoList_.addBodyToVList(immersedBodies_[addIBPos]);
                 InfoH << addModel_Info << "Body based on: " << bodyName << " successfully added" << endl;
                 cAddition = 0;
             }
@@ -427,7 +430,8 @@ void openHFDIBDEM::initialize
         }
     }
 
-    verletList_.initialSorting();
+    vCntcList_.initialSorting();
+    vDlvoList_.initialSorting();
 }
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
@@ -686,7 +690,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
                     transVec
                 ))
                 {
-                    verletList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
 
                     scalar thrSurf(readScalar(HFDIBDEMDict_.lookup("surfaceThreshold")));
                     std::shared_ptr<periodicBody> newPeriodicBody
@@ -699,7 +704,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
                     newPeriodicBody->addBodyToCluster(iBcopy);
                     immersedBodies_[bodyId].getGeomModelPtr() = newPeriodicBody;
 
-                    verletList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
                     Info << "Periodic body created for body " << bodyId << endl;
                 }
             }
@@ -709,11 +715,13 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
                 if(cBody.shouldBeUnclustered())
                 {
-                    verletList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
 
                     immersedBodies_[bodyId].getGeomModelPtr() = cBody.getRemGeomModel();
 
-                    verletList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
                     Info << "Periodic body unclustered for body " << bodyId << endl;
                 }
             }
@@ -785,7 +793,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
         bodiesPositionList[Pstream::myProcNo()].clear();
 
-        verletList_.update(immersedBodies_);
+        vCntcList_.update(immersedBodies_);
+        vDlvoList_.update(immersedBodies_);
+
         DynamicLabelList wallContactIB;
         wallContactIBTable.clear();
         forAll (immersedBodies_,bodyId)
@@ -897,7 +907,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         DynamicList<prtSubContactInfo*> contactList;
         // check only pairs whose bounding boxes are intersected for the contact
         label vListSize(0);
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
@@ -988,7 +998,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         syncOutForceKeyTable.clear();
 
         label nIter(0);
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
@@ -1019,7 +1029,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
         label nvListIter(0);
 
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
             label cInd(cPair.first());
@@ -1078,51 +1088,26 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
             }
         }
 
-        scalar cRadius = immersedBodies_[0].getGeomModel().getDC() / 2;
-        scalar tRadius = immersedBodies_[1].getGeomModel().getDC() / 2;
-        vector tCenter = immersedBodies_[1].getGeomModel().getCoM();
+        for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+        {
+            const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+            label cInd(cPair.first());
+            label tInd(cPair.second());
 
-        vector centerDir = immersedBodies_[0].getGeomModel().getCoM()
-                            - tCenter;
+            dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), cInd, tInd);
 
-        scalar d = mag(centerDir);
+            Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo);
 
-        scalar surfDist = d - (cRadius + tRadius);
-        surfDist = surfDist < SMALL ? SMALL : surfDist;
+            immersedBodies_[cInd].updateContactForces
+            (
+                dlvoForces.first()
+            );
 
-        Info << "DLVO: Testing DLVO___________-" << endl;
-        Info << "DLVO: surfDist: " << surfDist << endl;
-
-        scalar A = 1e-20;
-        scalar F_WdV = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
-
-        scalar eps_0 = 8.854e-12;
-        scalar eps_r = 50;
-        scalar zeta = 2e-2;
-        scalar rec_Debye = 5e-9;
-
-        scalar F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(rec_Debye*exp(surfDist/rec_Debye)+rec_Debye);
-
-        Info << "DLVO: F_WdV: " << F_WdV << endl;
-        Info << "DLVO: F_elec: " << F_elec << endl;
-        scalar F_dlvo = F_WdV + F_elec;
-        Info << "DLVO: F_dlvo: " << F_dlvo << endl;
-
-        vector cDirNorm = centerDir/mag(centerDir);
-        vector F_c = F_dlvo * cDirNorm;
-        vector F_t = - F_c;
-        Info << "DLVO: F_c: " << F_c << endl;
-        Info << "DLVO: F_t: " << F_t << endl;
-
-        immersedBodies_[0].updateContactForces
-        (
-            forces(F_c, vector::zero)
-        );
-
-        immersedBodies_[1].updateContactForces
-        (
-            forces(F_t, vector::zero)
-        );
+            immersedBodies_[tInd].updateContactForces
+            (
+                dlvoForces.second()
+            );
+        }
 
         // reduce(resolvedPrtContacts,sumOp<label>());
         // InfoH << basic_Info << " -- Possible Particle Contacts: " << possiblePrtContacts
@@ -1225,7 +1210,8 @@ void openHFDIBDEM::addRemoveBodies
                 {
                     nBody.initSyncWithFlow(U);
                 }
-                verletList_.addBodyToVList(nBody);
+                vCntcList_.addBodyToVList(nBody);
+                vDlvoList_.addBodyToVList(nBody);
 
                 InfoH << addModel_Info
                     << "new body included into the simulation" << endl;
@@ -1358,7 +1344,8 @@ void openHFDIBDEM::restartSimulation
         immersedBodies_[addIBPos].createImmersedBody(body,refineF);
         immersedBodies_[addIBPos].computeBodyCharPars();
         immersedBodies_[addIBPos].setRestartSim(Vel,omega,Axis,isStatic,timeStepsInContWStatic);
-        verletList_.addBodyToVList(immersedBodies_[addIBPos]);
+        vCntcList_.addBodyToVList(immersedBodies_[addIBPos]);
+        vDlvoList_.addBodyToVList(immersedBodies_[addIBPos]);
     }
 }
 //---------------------------------------------------------------------------//

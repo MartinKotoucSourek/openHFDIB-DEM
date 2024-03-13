@@ -169,8 +169,8 @@ class verletBox
 
     void setVerletPoints()
     {
-        minPoint_ = std::make_shared<verletPoint>(bodyID_, shared_from_this(), bBox_->min(), true,isStatic_);
-        maxPoint_ = std::make_shared<verletPoint>(bodyID_, shared_from_this(), bBox_->max(), false,isStatic_);
+        minPoint_ = std::make_shared<verletPoint>(bodyID_, shared_from_this(), bBox_->min(), true, isStatic_);
+        maxPoint_ = std::make_shared<verletPoint>(bodyID_, shared_from_this(), bBox_->max(), false, isStatic_);
     }
 
     std::shared_ptr<verletPoint> getMinPoint()

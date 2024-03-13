@@ -22,30 +22,46 @@ License
     You should have received a copy of the GNU Lesser General Public License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
-Namspace
-    contactModel
-
-Description
-    namespace providing functions to solve contacts
+InNamspace
+    Foam
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
+#include "dlvoClass.H"
 
-#ifndef contactModel_H
-#define contactModel_H
+using namespace Foam;
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//---------------------------------------------------------------------------//
+dlvoClass::dlvoClass(const vector& cutOff):
+    cutOff_(cutOff)
+{}
 
-#include "prtContact.H"
-#include "wallContact.H"
-#include "dlvoContact.H"
-#include "cyclicContact.H"
-#include "materialInfo.H"
+dlvoClass::~dlvoClass()
+{}
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+void dlvoClass::setBBoxes(List<std::shared_ptr<boundBox>> bBox)
+{
+    if (bBox.size() != bBox_.size())
+    {
+        bBox_.clear();
+        for (int i = 0; i < bBox.size(); i++)
+        {
+            bBox_.append(std::make_shared<boundBox>());
+        }
+    }
 
-#endif
+    for (int i = 0; i < bBox.size(); i++)
+    {
+        bBox_[i]->min() = bBox[i]->min() - cutOff_;
+        bBox_[i]->max() = bBox[i]->max() + cutOff_;
+    }
+}
 
-// ************************************************************************* //
+List<std::shared_ptr<boundBox>> dlvoClass::getBBoxes()
+{
+    return bBox_;
+}
+
+//---------------------------------------------------------------------------//
