@@ -58,7 +58,7 @@ class dlvoClass
     vector cutOff_;
 
     public:
-    dlvoClass(const vector& cutOff);
+    dlvoClass(const scalar& cutOff);
     ~dlvoClass();
 
     void setBBoxes(List<std::shared_ptr<boundBox>> bBox);

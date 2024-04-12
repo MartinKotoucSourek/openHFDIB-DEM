@@ -46,6 +46,7 @@ Contributors
 #include "cyclicPlaneInfo.H"
 #include "contactModelInfo.H"
 #include "solverInfo.H"
+#include "dlvoInfo.H"
 
 namespace Foam
 {
@@ -81,6 +82,15 @@ bool solverInfo::onlyDEM_ = false;
 bool contactModelInfo::useChenRotationalModel_ = false;
 bool contactModelInfo::useMindlinRotationalModel_ = false;
 bool contactModelInfo::increasedDamping_ = false;
+
+bool   dlvoInfo::active_ = false;
+scalar dlvoInfo::A_ = 1e-20;
+scalar dlvoInfo::eps0_ = 8.854e-12;
+scalar dlvoInfo::epsR_ = 50;
+scalar dlvoInfo::zeta_ = 2e-2;
+scalar dlvoInfo::recK_ = 5e-9;
+scalar dlvoInfo::cutOff_ = 1e-5;
+scalar dlvoInfo::minSurfDist_ = 1e-10;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

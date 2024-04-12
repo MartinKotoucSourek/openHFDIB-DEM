@@ -31,6 +31,9 @@ Contributors
 \*---------------------------------------------------------------------------*/
 #include "dlvoContact.H"
 
+#include "dlvoInfo.H"
+#include "periodicBody.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -56,6 +59,12 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     dlvoContactInfo& cInfo
 )
 {
+    scalar A = dlvoInfo::getA();
+    scalar eps_0 = dlvoInfo::getEps0();
+    scalar eps_r = dlvoInfo::getEpsR();
+    scalar zeta = dlvoInfo::getZeta();
+    scalar recK = dlvoInfo::getRecK();
+
     scalar cRadius = cInfo.getcClass().getGeomModel().getDC() / 2;
     scalar tRadius = cInfo.gettClass().getGeomModel().getDC() / 2;
     vector tCenter = cInfo.gettClass().getGeomModel().getCoM();
@@ -66,31 +75,20 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     scalar d = mag(centerDir);
 
     scalar surfDist = d - (cRadius + tRadius);
-    surfDist = surfDist < SMALL ? SMALL : surfDist;
+    surfDist = surfDist < dlvoInfo::getMinSurfDist() ? dlvoInfo::getMinSurfDist() : surfDist;
 
-    Info << "DLVO: Testing DLVO___________-" << endl;
-    Info << "DLVO: surfDist: " << surfDist << endl;
-
-    scalar A = 1e-20;
     scalar F_WdV = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
+    scalar F_elec = 0;
+    if (surfDist/recK < 100)
+    {
+        F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(recK*exp(surfDist/recK)+recK);
+    }
 
-    scalar eps_0 = 8.854e-12;
-    scalar eps_r = 50;
-    scalar zeta = 2e-2;
-    scalar rec_Debye = 5e-9;
-
-    scalar F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(rec_Debye*exp(surfDist/rec_Debye)+rec_Debye);
-
-    Info << "DLVO: F_WdV: " << F_WdV << endl;
-    Info << "DLVO: F_elec: " << F_elec << endl;
     scalar F_dlvo = F_WdV + F_elec;
-    Info << "DLVO: F_dlvo: " << F_dlvo << endl;
 
     vector cDirNorm = centerDir/mag(centerDir);
     vector F_c = F_dlvo * cDirNorm;
     vector F_t = - F_c;
-    Info << "DLVO: F_c: " << F_c << endl;
-    Info << "DLVO: F_t: " << F_t << endl;
 
     return {forces(F_c, vector::zero), forces(F_t, vector::zero)};
 }
@@ -100,8 +98,71 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
     dlvoContactInfo& cInfo
 )
 {
-    Info << "Not implemented yet" << endl;
-    return {};
+    Tuple2<forces,forces> returnF = {forces(vector::zero, vector::zero), forces(vector::zero, vector::zero)};
+
+    std::vector<std::shared_ptr<geomModel>> cBodies;
+    std::vector<std::shared_ptr<geomModel>> tBodies;
+
+    bool isCCluster = cInfo.getcClass().getGeomModel().isCluster();
+
+    if(isCCluster)
+    {
+        periodicBody& cCluster = dynamic_cast<periodicBody&>(cInfo.getcClass().getGeomModel());
+        cBodies = cCluster.getClusterBodies();
+    }
+    else
+    {
+        cBodies.push_back(cInfo.getcClass().getGeomModelPtr());
+    }
+
+    if(cInfo.gettClass().getGeomModel().isCluster())
+    {
+        periodicBody& tCluster = dynamic_cast<periodicBody&>(cInfo.gettClass().getGeomModel());
+        if (isCCluster)
+        {
+            tBodies.push_back(tCluster.getClusterBodies()[0]);
+        }
+        else
+        {
+            tBodies = tCluster.getClusterBodies();
+        }
+    }
+    else
+    {
+        tBodies.push_back(cInfo.gettClass().getGeomModelPtr());
+    }
+
+    for(std::shared_ptr<geomModel>& cgModel : cBodies)
+    {
+        for(std::shared_ptr<geomModel>& tgModel : tBodies)
+        {
+            ibContactClass cIbClassI(
+                cgModel,
+                cInfo.getcClass().getMatInfo().getMaterial()
+            );
+
+            ibContactClass tIbClassI(
+                tgModel,
+                cInfo.gettClass().getMatInfo().getMaterial()
+            );
+
+            dlvoContactInfo tmpDlvoInfoI(
+                cIbClassI,
+                tIbClassI,
+                cInfo.getCPair().first(),
+                cInfo.getCPair().second()
+            );
+
+            Tuple2<forces,forces> tmpF = solveDlvoContact(tmpDlvoInfoI);
+
+            if (mag(tmpF.first().F)
+                > mag(returnF.first().F))
+            {
+                returnF = tmpF;
+            }
+        }
+    }
+    return returnF;
 }
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact

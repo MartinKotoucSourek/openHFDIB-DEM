@@ -23,45 +23,90 @@ License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
 InNamspace
-    Foam
+    contactModel
+
+Description
+    Static class to store dlvo coefficients
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
-#include "dlvoClass.H"
 
-using namespace Foam;
+#ifndef dlvoInfo_H
+#define dlvoInfo_H
 
-//---------------------------------------------------------------------------//
-dlvoClass::dlvoClass(const scalar& cutOff):
-    cutOff_(cutOff, cutOff, cutOff)
-{}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dlvoClass::~dlvoClass()
-{}
-
-void dlvoClass::setBBoxes(List<std::shared_ptr<boundBox>> bBox)
+namespace Foam
 {
-    if (bBox.size() != bBox_.size())
-    {
-        bBox_.clear();
-        for (int i = 0; i < bBox.size(); i++)
-        {
-            bBox_.append(std::make_shared<boundBox>());
-        }
-    }
 
-    for (int i = 0; i < bBox.size(); i++)
-    {
-        bBox_[i]->min() = bBox[i]->min() - cutOff_;
-        bBox_[i]->max() = bBox[i]->max() + cutOff_;
-    }
-}
+/*---------------------------------------------------------------------------*\
+                      Class interAdhesion Declaration
+\*---------------------------------------------------------------------------*/
 
-List<std::shared_ptr<boundBox>> dlvoClass::getBBoxes()
+
+class dlvoInfo
 {
-    return bBox_;
-}
+    public:
 
-//---------------------------------------------------------------------------//
+    static const bool& isActive()
+    {
+        return active_;
+    };
+    static bool active_;
+
+    static const scalar& getA()
+    {
+        return A_;
+    };
+
+    static const scalar& getEps0()
+    {
+        return eps0_;
+    };
+
+    static const scalar& getEpsR()
+    {
+        return epsR_;
+    };
+
+    static const scalar& getZeta()
+    {
+        return zeta_;
+    };
+
+    static const scalar& getRecK()
+    {
+        return recK_;
+    };
+
+    static const scalar& getCutOff()
+    {
+        return cutOff_;
+    };
+
+    static const scalar& getMinSurfDist()
+    {
+        return minSurfDist_;
+    };
+
+    static scalar A_;
+    static scalar eps0_;
+    static scalar epsR_;
+    static scalar zeta_;
+    static scalar recK_;
+    static scalar cutOff_;
+    static scalar minSurfDist_;
+
+};
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#endif
+
+// ************************************************************************* //

@@ -189,8 +189,41 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         }
     }
 
-
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
+
+    if(demDic.found("dlvo"))
+    {
+        dictionary dlvoDic = demDic.subDict("dlvo");
+        dlvoInfo::active_ = true;
+        if (dlvoDic.found("A"))
+        {
+            dlvoInfo::A_ = readScalar(dlvoDic.lookup("A"));
+        }
+        if (dlvoDic.found("eps0"))
+        {
+            dlvoInfo::eps0_ = readScalar(dlvoDic.lookup("eps0"));
+        }
+        if (dlvoDic.found("epsR"))
+        {
+            dlvoInfo::epsR_ = readScalar(dlvoDic.lookup("epsR"));
+        }
+        if (dlvoDic.found("zeta"))
+        {
+            dlvoInfo::zeta_ = readScalar(dlvoDic.lookup("zeta"));
+        }
+        if (dlvoDic.found("recK"))
+        {
+            dlvoInfo::recK_ = readScalar(dlvoDic.lookup("recK"));
+        }
+        if (dlvoDic.found("cutOff"))
+        {
+            dlvoInfo::cutOff_ = readScalar(dlvoDic.lookup("cutOff"));
+        }
+        if (dlvoDic.found("minSurfDist"))
+        {
+            dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
+        }
+    }
 
     dictionary patchDic = demDic.subDict("collisionPatches");
     List<word> patchNames = patchDic.toc();
