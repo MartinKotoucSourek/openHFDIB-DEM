@@ -26,72 +26,80 @@ InNamspace
     contactModel
 
 Description
-    DEM parameters
+    Static class to store dlvo coefficients
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef parameters_H
-#define parameters_H
+#ifndef dlvoInfo_H
+#define dlvoInfo_H
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#include "materialProperties.H"
-#include "interAdhesion.H"
-#include "wallMatInfo.H"
-#include "wallPlaneInfo.H"
-#include "virtualMeshLevel.H"
-#include "cyclicPlaneInfo.H"
-#include "contactModelInfo.H"
-#include "solverInfo.H"
-#include "dlvoInfo.H"
 
 namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                            Parameters Definition
+                      Class interAdhesion Declaration
 \*---------------------------------------------------------------------------*/
 
-HashTable<materialInfo,string,Hash<string>> materialProperties::materialProps_ =
-    HashTable<materialInfo,string,Hash<string>>();
 
-HashTable<scalar,string,Hash<string>> interAdhesion::matInterAdh_ =
-    HashTable<scalar,string,Hash<string>>();
+class dlvoInfo
+{
+    public:
 
-HashTable<materialInfo,string,Hash<string>> wallMatInfo::wallMatInfo_ =
-    HashTable<materialInfo,string,Hash<string>>();
+    static const bool& isActive()
+    {
+        return active_;
+    };
+    static bool active_;
 
-HashTable<List<vector>,string,Hash<string>> wallPlaneInfo::wallPlaneInfo_ =
-    HashTable<List<vector>,string,Hash<string>>();
+    static const scalar& getA()
+    {
+        return A_;
+    };
 
-HashTable<List<vector>,string,Hash<string>> cyclicPlaneInfo::cyclicPlaneInfo_ =
-    HashTable<List<vector>,string,Hash<string>>();
+    static const scalar& getEps0()
+    {
+        return eps0_;
+    };
 
-std::map<string, string> cyclicPlaneInfo::cyclicPatchPairs_ =
-    std::map<string, string>();
+    static const scalar& getEpsR()
+    {
+        return epsR_;
+    };
 
-scalar virtualMeshLevel::virtualMeshLevel_ = 1;
-scalar virtualMeshLevel::levelOfDivision_ = 1;
-scalar virtualMeshLevel::charCellSize_ = 1;
-scalar contactModelInfo::LcCoeff_ = 4.0;
-label  solverInfo::nSolidsTreshnold_ = 1000;
-bool solverInfo::onlyDEM_ = false;
+    static const scalar& getZeta()
+    {
+        return zeta_;
+    };
 
-bool contactModelInfo::useChenRotationalModel_ = false;
-bool contactModelInfo::useMindlinRotationalModel_ = false;
-bool contactModelInfo::increasedDamping_ = false;
+    static const scalar& getRecK()
+    {
+        return recK_;
+    };
 
-bool   dlvoInfo::active_ = false;
-scalar dlvoInfo::A_ = 1e-20;
-scalar dlvoInfo::eps0_ = 8.854e-12;
-scalar dlvoInfo::epsR_ = 50;
-scalar dlvoInfo::zeta_ = 2e-2;
-scalar dlvoInfo::recK_ = 5e-9;
-scalar dlvoInfo::cutOff_ = 1e-5;
-scalar dlvoInfo::minSurfDist_ = 1e-10;
+    static const scalar& getCutOff()
+    {
+        return cutOff_;
+    };
+
+    static const scalar& getMinSurfDist()
+    {
+        return minSurfDist_;
+    };
+
+    static scalar A_;
+    static scalar eps0_;
+    static scalar epsR_;
+    static scalar zeta_;
+    static scalar recK_;
+    static scalar cutOff_;
+    static scalar minSurfDist_;
+
+};
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

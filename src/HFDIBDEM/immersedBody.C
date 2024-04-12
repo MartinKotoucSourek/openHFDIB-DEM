@@ -48,6 +48,7 @@ Contributors
 #include "fvcSmooth.H"
 #include "fvMeshSubset.H"
 #include "solverInfo.H"
+#include "dlvoInfo.H"
 
 #define ORDER 2
 
@@ -73,7 +74,6 @@ immersedDict_(HFDIBDEMDict.subDict(bodyName_)),
 mesh_(mesh),
 transportProperties_(transportProperties),
 geomModel_(std::move(bodyGeomModel)),
-dlvo_(std::make_shared<dlvoClass>(vector(1e-4,1e-4,1e-4))),
 cellPoints_(cellPoints),
 Axis_(vector::one),
 AxisOld_(vector::one),

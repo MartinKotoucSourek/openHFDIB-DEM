@@ -34,8 +34,8 @@ Contributors
 using namespace Foam;
 
 //---------------------------------------------------------------------------//
-dlvoClass::dlvoClass(const vector& cutOff):
-    cutOff_(cutOff)
+dlvoClass::dlvoClass(const scalar& cutOff):
+    cutOff_(cutOff, cutOff, cutOff)
 {}
 
 dlvoClass::~dlvoClass()

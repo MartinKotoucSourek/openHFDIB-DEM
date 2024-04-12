@@ -162,6 +162,40 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         }
     }
 
+    if(demDic.found("dlvo"))
+    {
+        dictionary dlvoDic = demDic.subDict("dlvo");
+        dlvoInfo::active_ = true;
+        if (dlvoDic.found("A"))
+        {
+            dlvoInfo::A_ = readScalar(dlvoDic.lookup("A"));
+        }
+        if (dlvoDic.found("eps0"))
+        {
+            dlvoInfo::eps0_ = readScalar(dlvoDic.lookup("eps0"));
+        }
+        if (dlvoDic.found("epsR"))
+        {
+            dlvoInfo::epsR_ = readScalar(dlvoDic.lookup("epsR"));
+        }
+        if (dlvoDic.found("zeta"))
+        {
+            dlvoInfo::zeta_ = readScalar(dlvoDic.lookup("zeta"));
+        }
+        if (dlvoDic.found("recK"))
+        {
+            dlvoInfo::recK_ = readScalar(dlvoDic.lookup("recK"));
+        }
+        if (dlvoDic.found("cutOff"))
+        {
+            dlvoInfo::cutOff_ = readScalar(dlvoDic.lookup("cutOff"));
+        }
+        if (dlvoDic.found("minSurfDist"))
+        {
+            dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
+        }
+    }
+
     if(demDic.found("LcCoeff"))
     {
         contactModelInfo::setLcCoeff(readScalar(demDic.lookup("LcCoeff")));
@@ -1000,6 +1034,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         label nIter(0);
         for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
+            Info << "Contact Pair: " << it->first << " " << it->second << endl;
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
             prtContactInfo& prtcInfo(getPrtcInfo(cPair));

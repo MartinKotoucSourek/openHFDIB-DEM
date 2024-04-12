@@ -62,7 +62,7 @@ if (mesh_.nGeometricD() < 3)
                 Vel_ = immersedDict_.subDict("fullyCoupledBody").lookup("velocity");
             }
             if(immersedDict_.subDict("fullyCoupledBody").found("axis"))
-            {            
+            {
                 Axis_ = immersedDict_.subDict("fullyCoupledBody").lookup("axis");
             }
             if(immersedDict_.subDict("fullyCoupledBody").found("omega"))
@@ -164,3 +164,8 @@ if (mesh_.nGeometricD() < 3)
         ibContactClass_(),
         ibCntVars_()
     ));
+
+    if (dlvoInfo::isActive())
+    {
+        dlvo_ = std::make_shared<dlvoClass>(dlvoInfo::getCutOff());
+    }
