@@ -173,7 +173,7 @@ namespace Foam
 
     void recreateBodies(volScalarField& body,volScalarField& refineF);
     // void for DEM inner-loops
-    void updateDEM(volScalarField& body,volScalarField& refineF);
+    void updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f);
 
     prtContactInfo& getPrtcInfo(Tuple2<label,label> cPair);
 

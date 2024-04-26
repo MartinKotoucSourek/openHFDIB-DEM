@@ -152,13 +152,6 @@ namespace Foam
             volVectorField& f
         );
 
-        // update fluid-solid coupling
-        void updateCoupling
-        (
-            volScalarField& body,
-            volVectorField& f
-        );
-
         // auxiliary octree variables
         Field<label> octreeField_;
         label cellToStartInCreateIB_;
@@ -200,6 +193,12 @@ namespace Foam
         ~immersedBody();
 
         // Public methods ----------------------------------------------
+        // update fluid-solid coupling
+        void updateCoupling
+        (
+            volScalarField& body,
+            volVectorField& f
+        );
 
         // move immersed body
         void moveImmersedBody

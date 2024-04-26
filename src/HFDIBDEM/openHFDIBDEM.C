@@ -709,7 +709,7 @@ void openHFDIBDEM::writeBodiesInfo()
 
 }
 //---------------------------------------------------------------------------//
-void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
+void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
 {
     if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
     {
@@ -771,9 +771,28 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> syncOutForceKeyTable;
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> contactResolvedKeyTable;
     HashTable <label,label,Hash<label>> wallContactIBTable;
+
+    volScalarField surface  = body;
+    forAll(surface, sI)
+    {
+        if (body[sI] > 0)
+            surface[sI] = 1;
+        else
+            surface[sI] = 0;
+    }
+
     while( pos < 1)
     {
         bodiesPositionList[Pstream::myProcNo()].clear();
+
+        // Updating fluid force
+        volVectorField cUi = Ui;
+        interpolateIB(U, cUi, body);
+        volVectorField cf = f + surface*(cUi - U)/mesh_.time().deltaT();
+        forAll (immersedBodies_,bodyId)
+        {
+            immersedBodies_[bodyId].updateCoupling(body, cf);
+        }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos
             << " DEM step: " << step << endl;
