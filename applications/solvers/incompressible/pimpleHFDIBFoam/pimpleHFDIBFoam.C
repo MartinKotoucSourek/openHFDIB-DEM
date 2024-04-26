@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     openHFDIBDEM  HFDIBDEM(mesh);
     HFDIBDEM.initialize(lambda,U,refineF,maxRefinementLevel,runTime.timeName());
     #include "initialMeshRefinement.H"
-    
+
     if(HFDIBDEM.getRecordFirstTime())
     {
         HFDIBDEM.setRecordFirstTime(false);
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         // clockTime createBodiesTime; // OS time efficiency testing
         HFDIBDEM.createBodies(lambda,refineF);
         // createBodiesTime_ += createBodiesTime.timeIncrement(); // OS time efficiency testing
-        
+
         // clockTime preUpdateBodiesTime; // OS time efficiency testing
         HFDIBDEM.preUpdateBodies(lambda,f);
         // preUpdateTime_ += preUpdateBodiesTime.timeIncrement(); // OS time efficiency testing
@@ -181,8 +181,7 @@ int main(int argc, char *argv[])
         // addRemoveTime_ += addRemoveTime.timeIncrement();
 
         // clockTime updateDEMTime;
-        HFDIBDEM.updateDEM(lambda,refineF);
-        // updateDEMTime_ += updateDEMTime.timeIncrement();
+        HFDIBDEM.updateDEM(lambda, refineF, U, Ui, f);
         Info << "updated HFDIBDEM" << endl;
 
 
@@ -201,7 +200,7 @@ int main(int argc, char *argv[])
 
     // DEMTime_ = preUpdateTime_ + createBodiesTime_ + postUpdateTime_ + addRemoveTime_ + updateDEMTime_ + writeBodiesInfoTime_;
     // Info<< "CFDTime_            = " << CFDTime_             << " s \n"
-    //     << "DEMTime_            = " << DEMTime_             << " s \n" 
+    //     << "DEMTime_            = " << DEMTime_             << " s \n"
     //     << "preUpdateTime       = " << preUpdateTime_       << " s \n"
     //     << "createBodiesTime    = " << createBodiesTime_    << " s \n"
     //     << "postUpdateTime      = " << postUpdateTime_      << " s \n"
