@@ -80,7 +80,9 @@ transportProperties_
 bodyNames_(HFDIBDEMDict_.lookup("bodyNames")),
 prtcInfoTable_(0),
 stepDEM_(readScalar(HFDIBDEMDict_.lookup("stepDEM"))),
-recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
+recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation"))),
+nuF_(transportProperties_.lookup("nu")),
+rhoF_(transportProperties_.lookup("rho"))
 {
     materialProperties::matProps_insert(
         "None",
@@ -711,57 +713,6 @@ void openHFDIBDEM::writeBodiesInfo()
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
 {
-    if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
-    {
-        forAll (immersedBodies_,bodyId)
-        {
-            if (!immersedBodies_[bodyId].getGeomModel().isCluster())
-            {
-                vector transVec = vector::zero;
-
-                if (detectCyclicContact(
-                    immersedBodies_[bodyId].getWallCntInfo(),
-                    transVec
-                ))
-                {
-                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
-                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
-
-                    scalar thrSurf(readScalar(HFDIBDEMDict_.lookup("surfaceThreshold")));
-                    std::shared_ptr<periodicBody> newPeriodicBody
-                        = std::make_shared<periodicBody>(mesh_, thrSurf);
-
-                    newPeriodicBody->setRhoS(immersedBodies_[bodyId].getGeomModel().getRhoS());
-                    std::shared_ptr<geomModel> iBcopy(immersedBodies_[bodyId].getGeomModel().getCopy());
-                    iBcopy->bodyMovePoints(transVec);
-                    newPeriodicBody->addBodyToCluster(immersedBodies_[bodyId].getGeomModelPtr());
-                    newPeriodicBody->addBodyToCluster(iBcopy);
-                    immersedBodies_[bodyId].getGeomModelPtr() = newPeriodicBody;
-
-                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
-                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body created for body " << bodyId << endl;
-                }
-            }
-            else
-            {
-                periodicBody& cBody = dynamic_cast<periodicBody&>(immersedBodies_[bodyId].getGeomModel());
-
-                if(cBody.shouldBeUnclustered())
-                {
-                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
-                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
-
-                    immersedBodies_[bodyId].getGeomModelPtr() = cBody.getRemGeomModel();
-
-                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
-                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body unclustered for body " << bodyId << endl;
-                }
-            }
-        }
-    }
-
     scalar deltaTime(mesh_.time().deltaT().value());
     scalar pos(0.0);
     scalar step(stepDEM_);
@@ -800,6 +751,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         forAll (immersedBodies_,ib)
         {
+            Info << "Body " << ib << " velocity bef 1 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
 
             if(Pstream::myProcNo() == 0 )
@@ -1143,9 +1095,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             label cInd(cPair.first());
             label tInd(cPair.second());
 
-            dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), cInd, tInd);
+            dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars());
 
-            Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo);
+            Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
 
             immersedBodies_[cInd].updateContactForces
             (
@@ -1166,7 +1118,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         label  bodyId = 0;
         forAll (immersedBodies_,ib)
         {
+            Info << "Body " << ib << " velocity bef 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
+            Info << "Body " << ib << " velocity aft 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].printBodyInfo();
             // immersedBodies_[ib].computeBodyCoNumber();
             // if (maxCoNum < immersedBodies_[ib].getCoNum())
@@ -1184,6 +1138,57 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 //OS Time effitiency Testing
         // demItegrationTime_ = DEMIntergrationRun.timeIncrement();
 //OS Time effitiency Testing
+    }
+
+    if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
+    {
+        forAll (immersedBodies_,bodyId)
+        {
+            if (!immersedBodies_[bodyId].getGeomModel().isCluster())
+            {
+                vector transVec = vector::zero;
+
+                if (detectCyclicContact(
+                    immersedBodies_[bodyId].getWallCntInfo(),
+                    transVec
+                ))
+                {
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
+
+                    scalar thrSurf(readScalar(HFDIBDEMDict_.lookup("surfaceThreshold")));
+                    std::shared_ptr<periodicBody> newPeriodicBody
+                        = std::make_shared<periodicBody>(mesh_, thrSurf);
+
+                    newPeriodicBody->setRhoS(immersedBodies_[bodyId].getGeomModel().getRhoS());
+                    std::shared_ptr<geomModel> iBcopy(immersedBodies_[bodyId].getGeomModel().getCopy());
+                    iBcopy->bodyMovePoints(transVec);
+                    newPeriodicBody->addBodyToCluster(immersedBodies_[bodyId].getGeomModelPtr());
+                    newPeriodicBody->addBodyToCluster(iBcopy);
+                    immersedBodies_[bodyId].getGeomModelPtr() = newPeriodicBody;
+
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
+                    Info << "Periodic body created for body " << bodyId << endl;
+                }
+            }
+            else
+            {
+                periodicBody& cBody = dynamic_cast<periodicBody&>(immersedBodies_[bodyId].getGeomModel());
+
+                if(cBody.shouldBeUnclustered())
+                {
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
+
+                    immersedBodies_[bodyId].getGeomModelPtr() = cBody.getRemGeomModel();
+
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
+                    Info << "Periodic body unclustered for body " << bodyId << endl;
+                }
+            }
+        }
     }
 }
 //---------------------------------------------------------------------------//

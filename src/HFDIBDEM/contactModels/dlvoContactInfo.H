@@ -62,8 +62,10 @@ class dlvoContactInfo
     private:
 
     ibContactClass& cIbContactClass_;
-
     ibContactClass& tIbContactClass_;
+
+    ibContactVars cIbContactVars_;
+    ibContactVars tIbContactVars_;
 
     Tuple2<label,label> contactPair_;
 
@@ -74,8 +76,8 @@ class dlvoContactInfo
     (
         ibContactClass& cClass,
         ibContactClass& tClass,
-        const label cId,
-        const label tId
+        ibContactVars& cVars,
+        ibContactVars& tVars
     );
 
     // Destructors -------------------------------------------------
@@ -95,6 +97,16 @@ class dlvoContactInfo
     ibContactClass& gettClass()
     {
         return tIbContactClass_;
+    }
+
+    ibContactVars& getcVars()
+    {
+        return cIbContactVars_;
+    }
+
+    ibContactVars& gettVars()
+    {
+        return tIbContactVars_;
     }
 };
 
