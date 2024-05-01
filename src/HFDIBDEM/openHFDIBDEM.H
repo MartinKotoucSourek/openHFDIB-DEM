@@ -132,6 +132,9 @@ namespace Foam
     bool recordFirstTimeStep_ = false;
     word recordOutDir_;
 
+    dimensionedScalar nuF_;
+    dimensionedScalar rhoF_;
+
     public:
 
     // Constructors ----------------------------------------------------

@@ -47,7 +47,9 @@ namespace contactModel
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact_ArbShape(
-    dlvoContactInfo& cInfo
+    dlvoContactInfo& cInfo,
+    dimensionedScalar nuF,
+    dimensionedScalar rhoF
 )
 {
     Info << "Not implemented yet" << endl;
@@ -56,7 +58,9 @@ Tuple2<forces,forces> solveDlvoContact_ArbShape(
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact_Sphere
 (
-    dlvoContactInfo& cInfo
+    dlvoContactInfo& cInfo,
+    dimensionedScalar nuF,
+    dimensionedScalar rhoF
 )
 {
     scalar A = dlvoInfo::getA();
@@ -87,7 +91,18 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     scalar F_dlvo = F_WdV + F_elec;
 
     vector cDirNorm = centerDir/mag(centerDir);
-    vector F_c = F_dlvo * cDirNorm;
+
+    // Lubrication force
+    scalar vn = -(cInfo.getcVars().Vel_ - cInfo.gettVars().Vel_) & cDirNorm;
+    Info << "F_ vn: " << vn << endl;
+    scalar F_lubr = 6*3.14*rhoF.value()*nuF.value()*pow(cRadius*tRadius/(cRadius + tRadius), 2)*vn/(surfDist);
+
+    Info << "F_WdV: " << F_WdV << endl;
+    Info << "F_elec: " << F_elec << endl;
+    Info << "F_lubr: " << F_lubr << endl;
+
+    vector F_c = (F_dlvo + F_lubr) * cDirNorm;
+    Info << "F_c: " << F_c << endl;
     vector F_t = - F_c;
 
     return {forces(F_c, vector::zero), forces(F_t, vector::zero)};
@@ -95,7 +110,9 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact_Cluster
 (
-    dlvoContactInfo& cInfo
+    dlvoContactInfo& cInfo,
+    dimensionedScalar nuF,
+    dimensionedScalar rhoF
 )
 {
     Tuple2<forces,forces> returnF = {forces(vector::zero, vector::zero), forces(vector::zero, vector::zero)};
@@ -132,6 +149,19 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
         tBodies.push_back(cInfo.gettClass().getGeomModelPtr());
     }
 
+    scalar cMass = 0;
+    scalar tMass = 0;
+
+    for(std::shared_ptr<geomModel>& cgModel : cBodies)
+    {
+        cMass += cgModel->getM();
+    }
+
+    for(std::shared_ptr<geomModel>& tgModel : tBodies)
+    {
+        tMass += tgModel->getM();
+    }
+
     for(std::shared_ptr<geomModel>& cgModel : cBodies)
     {
         for(std::shared_ptr<geomModel>& tgModel : tBodies)
@@ -149,25 +179,30 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
             dlvoContactInfo tmpDlvoInfoI(
                 cIbClassI,
                 tIbClassI,
-                cInfo.getCPair().first(),
-                cInfo.getCPair().second()
+                cInfo.getcVars(),
+                cInfo.gettVars()
             );
 
-            Tuple2<forces,forces> tmpF = solveDlvoContact(tmpDlvoInfoI);
+            Tuple2<forces,forces> tmpF = solveDlvoContact(tmpDlvoInfoI, nuF, rhoF);
 
-            if (mag(tmpF.first().F)
-                > mag(returnF.first().F))
-            {
-                returnF = tmpF;
-            }
+            // mass average of forces
+            tmpF.first().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+            tmpF.second().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+
+            returnF.first() += tmpF.first();
+            returnF.second() += tmpF.second();
         }
     }
+
+    Info << "Periodic F_c: " << returnF.first().F << endl;
     return returnF;
 }
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact
 (
-    dlvoContactInfo& cInfo
+    dlvoContactInfo& cInfo,
+    dimensionedScalar nuF,
+    dimensionedScalar rhoF
 )
 {
     if
@@ -178,7 +213,9 @@ Tuple2<forces,forces> solveDlvoContact
     )
     {
         return solveDlvoContact_Sphere(
-            cInfo
+            cInfo,
+            nuF,
+            rhoF
         );
     }
     else if
@@ -189,13 +226,17 @@ Tuple2<forces,forces> solveDlvoContact
     )
     {
         return solveDlvoContact_Cluster(
-            cInfo
+            cInfo,
+            nuF,
+            rhoF
         );
     }
     else
     {
         return solveDlvoContact_ArbShape(
-            cInfo
+            cInfo,
+            nuF,
+            rhoF
         );
     }
 }

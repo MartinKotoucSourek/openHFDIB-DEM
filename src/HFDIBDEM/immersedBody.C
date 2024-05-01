@@ -503,6 +503,8 @@ void immersedBody::updateCoupling
         refCoMList
     );
 
+    Pout << "-- body "<< bodyId_ <<" intLists size  : " << intLists.size() << endl;
+
   // calcualate viscous force and torque
 
     forAll (intLists, i)
@@ -516,6 +518,7 @@ void immersedBody::updateCoupling
             TA -=  ((mesh_.C()[cellI] - refCoMList[i])^f[cellI])
                 *mesh_.V()[cellI];
         }
+        Pout << "-- body "<< bodyId_ <<" Force FV  : " << FV << endl;
     }
 
     forAll (surfLists, i)
@@ -531,12 +534,13 @@ void immersedBody::updateCoupling
         }
     }
 
-  reduce(FV, sumOp<vector>());
-  reduce(TA, sumOp<vector>());
-  FV *= rhoF_.value();
-  TA *= rhoF_.value();
+    reduce(FV, sumOp<vector>());
+    reduce(TA, sumOp<vector>());
+    FV *= rhoF_.value();
+    TA *= rhoF_.value();
 
-  FCoupling_ = forces(FV, TA);
+    Info << "-- body "<< bodyId_ <<" Force FV  : " << FV << endl;
+    FCoupling_ = forces(FV, TA);
 }
 //---------------------------------------------------------------------------//
 // update movement variables of the body

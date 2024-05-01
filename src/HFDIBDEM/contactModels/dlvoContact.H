@@ -58,21 +58,29 @@ namespace contactModel
 {
 
     Tuple2<forces,forces> solveDlvoContact_ArbShape(
-        dlvoContactInfo& cInfo
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
     );
 
     Tuple2<forces,forces> solveDlvoContact_Sphere
     (
-        dlvoContactInfo& cInfo
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
     );
 
     Tuple2<forces,forces> solveDlvoContact_Cluster
     (
-        dlvoContactInfo& cInfo
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
     );
 
     Tuple2<forces,forces> solveDlvoContact(
-        dlvoContactInfo& cInfo
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
     );
 }
 

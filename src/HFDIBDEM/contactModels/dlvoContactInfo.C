@@ -38,15 +38,17 @@ dlvoContactInfo::dlvoContactInfo
 (
     ibContactClass& cClass,
     ibContactClass& tClass,
-    const label cId,
-    const label tId
+    ibContactVars& cVars,
+    ibContactVars& tVars
 )
 :
 cIbContactClass_(cClass),
-tIbContactClass_(tClass)
+tIbContactClass_(tClass),
+cIbContactVars_(cVars),
+tIbContactVars_(tVars)
 {
-    contactPair_.first() = cId;
-    contactPair_.second() = tId;
+    contactPair_.first() = cIbContactVars_.bodyId_;
+    contactPair_.second() = tIbContactVars_.bodyId_;
 }
 
 dlvoContactInfo::~dlvoContactInfo()

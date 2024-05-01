@@ -88,6 +88,18 @@ struct forces{
         T -= rhs.T;
     }
 
+    void operator*=(const scalar& rhs)
+    {
+        F *= rhs;
+        T *= rhs;
+    }
+
+    void operator/=(const scalar& rhs)
+    {
+        F /= rhs;
+        T /= rhs;
+    }
+
     void clear()
     {
         F = vector::zero;
