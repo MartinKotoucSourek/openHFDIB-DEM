@@ -225,6 +225,18 @@ rhoF_(transportProperties_.lookup("rho"))
         {
             dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
         }
+        if (dlvoDic.found("vdwMaxAcc"))
+        {
+            dlvoInfo::vdwMaxAcc_ = readScalar(dlvoDic.lookup("vdwMaxAcc"));
+        }
+        if (dlvoDic.found("eleMaxAcc"))
+        {
+            dlvoInfo::eleMaxAcc_ = readScalar(dlvoDic.lookup("eleMaxAcc"));
+        }
+        if (dlvoDic.found("lubMaxAcc"))
+        {
+            dlvoInfo::lubMaxAcc_ = readScalar(dlvoDic.lookup("lubMaxAcc"));
+        }
     }
 
     dictionary patchDic = demDic.subDict("collisionPatches");
@@ -1121,7 +1133,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             Info << "Body " << ib << " velocity bef 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
             Info << "Body " << ib << " velocity aft 2 " << immersedBodies_[ib].getVel() << endl;
-            immersedBodies_[ib].printBodyInfo();
             // immersedBodies_[ib].computeBodyCoNumber();
             // if (maxCoNum < immersedBodies_[ib].getCoNum())
             // {

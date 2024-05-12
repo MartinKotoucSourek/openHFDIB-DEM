@@ -69,6 +69,12 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     scalar zeta = dlvoInfo::getZeta();
     scalar recK = dlvoInfo::getRecK();
 
+    scalar vdwMaxForce = min(dlvoInfo::getVdwMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getVdwMaxAcc() * cInfo.gettClass().getGeomModel().getM());
+    scalar eleMaxForce = min(dlvoInfo::getEleMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getEleMaxAcc() * cInfo.gettClass().getGeomModel().getM());
+    // scalar lubMaxForce = min(dlvoInfo::getLubMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getLubMaxAcc() * cInfo.gettClass().getGeomModel().getM());
+
+    Info << "sphere dlvo contact cGetM: " << cInfo.getcClass().getGeomModel().getM() << " tGetM: " << cInfo.gettClass().getGeomModel().getM() << endl;
+
     scalar cRadius = cInfo.getcClass().getGeomModel().getDC() / 2;
     scalar tRadius = cInfo.gettClass().getGeomModel().getDC() / 2;
     vector tCenter = cInfo.gettClass().getGeomModel().getCoM();
@@ -81,27 +87,60 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     scalar surfDist = d - (cRadius + tRadius);
     surfDist = surfDist < dlvoInfo::getMinSurfDist() ? dlvoInfo::getMinSurfDist() : surfDist;
 
-    scalar F_WdV = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
+    scalar F_VdW = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
     scalar F_elec = 0;
     if (surfDist/recK < 100)
     {
         F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(recK*exp(surfDist/recK)+recK);
     }
 
-    scalar F_dlvo = F_WdV + F_elec;
+    scalar limitForce = std::abs(F_VdW) > std::abs(F_elec) ? vdwMaxForce : eleMaxForce;
+
+    // if (std::abs(F_VdW) > vdwMaxForce)
+    // {
+    //     Info << "VdW force exceeds the maximum allowed force. Maximum: " << vdwMaxForce << " Current: " << F_VdW << endl;
+    //     F_VdW = sign(F_VdW) * vdwMaxForce;
+    // }
+    // else
+    // {
+    //     Info << "Max VdW force: " << vdwMaxForce << " Current: " << F_VdW << endl;
+    // }
+    // if (std::abs(F_elec) > eleMaxForce)
+    // {
+    //     Info << "Electrostatic force exceeds the maximum allowed force. Maximum: " << eleMaxForce << " Current: " << F_elec << endl;
+    //     F_elec = sign(F_elec) * eleMaxForce;
+    // }
+    // else
+    // {
+    //     Info << "Max elec force: " << eleMaxForce << " Current: " << F_elec << endl;
+    // }
+
+    scalar F_dlvo = F_VdW + F_elec;
+
+    if (std::abs(F_dlvo) > limitForce)
+    {
+        Info << "DLVO force exceeds the maximum allowed force. Maximum: " << limitForce << " Current: " << F_dlvo << endl;
+        F_dlvo = sign(F_dlvo) * limitForce;
+    }
 
     vector cDirNorm = centerDir/mag(centerDir);
 
     // Lubrication force
-    scalar vn = -(cInfo.getcVars().Vel_ - cInfo.gettVars().Vel_) & cDirNorm;
-    Info << "F_ vn: " << vn << endl;
-    scalar F_lubr = 6*3.14*rhoF.value()*nuF.value()*pow(cRadius*tRadius/(cRadius + tRadius), 2)*vn/(surfDist);
+    // scalar vn = -(cInfo.getcVars().Vel_ - cInfo.gettVars().Vel_) & cDirNorm;
+    // Info << "F_ vn: " << vn << endl;
+    // scalar F_lubr = 6*3.14*rhoF.value()*nuF.value()*pow(cRadius*tRadius/(cRadius + tRadius), 2)*vn/(surfDist);
+    // if (std::abs(F_lubr) > lubMaxForce)
+    // {
+    //     Info << "Lubrication force exceeds the maximum allowed force. Maximum: " << lubMaxForce << " Current: " << F_lubr << endl;
+    //     F_lubr = sign(F_lubr) * lubMaxForce;
+    // }
+    // else
+    // {
+    //     Info << "Max lubr force: " << lubMaxForce << " Current: " << F_lubr << endl;
+    // }
 
-    Info << "F_WdV: " << F_WdV << endl;
-    Info << "F_elec: " << F_elec << endl;
-    Info << "F_lubr: " << F_lubr << endl;
-
-    vector F_c = (F_dlvo + F_lubr) * cDirNorm;
+    // vector F_c = (F_dlvo + F_lubr) * cDirNorm;
+    vector F_c = F_dlvo * cDirNorm;
     Info << "F_c: " << F_c << endl;
     vector F_t = - F_c;
 
@@ -125,12 +164,22 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
     if(isCCluster)
     {
         periodicBody& cCluster = dynamic_cast<periodicBody&>(cInfo.getcClass().getGeomModel());
-        cBodies = cCluster.getClusterBodies();
+        std::vector<std::shared_ptr<geomModel>> tempBodies = cCluster.getClusterBodies();
+
+        for(std::shared_ptr<geomModel>& cBody : tempBodies)
+        {
+            if (cBody->getM() == 0)
+                continue;
+
+            cBodies.push_back(cBody);
+        }
     }
     else
     {
         cBodies.push_back(cInfo.getcClass().getGeomModelPtr());
     }
+
+    isCCluster = cBodies.size() != 1;
 
     if(cInfo.gettClass().getGeomModel().isCluster())
     {
@@ -141,7 +190,15 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
         }
         else
         {
-            tBodies = tCluster.getClusterBodies();
+            std::vector<std::shared_ptr<geomModel>> tempBodies = tCluster.getClusterBodies();
+
+            for(std::shared_ptr<geomModel>& tBody : tempBodies)
+            {
+                if (tBody->getM() == 0)
+                    continue;
+
+                tBodies.push_back(tBody);
+            }
         }
     }
     else
@@ -160,6 +217,11 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
     for(std::shared_ptr<geomModel>& tgModel : tBodies)
     {
         tMass += tgModel->getM();
+    }
+
+    if (cMass == 0 || tMass == 0)
+    {
+        return {};
     }
 
     for(std::shared_ptr<geomModel>& cgModel : cBodies)
@@ -186,15 +248,21 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
             Tuple2<forces,forces> tmpF = solveDlvoContact(tmpDlvoInfoI, nuF, rhoF);
 
             // mass average of forces
-            tmpF.first().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
-            tmpF.second().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+            try
+            {
+                tmpF.first().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+                tmpF.second().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+            }
+            catch(const std::exception& e)
+            {
+                Info << e.what() << endl;
+            }
 
             returnF.first() += tmpF.first();
             returnF.second() += tmpF.second();
         }
     }
 
-    Info << "Periodic F_c: " << returnF.first().F << endl;
     return returnF;
 }
 //---------------------------------------------------------------------------//
