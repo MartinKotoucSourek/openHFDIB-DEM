@@ -196,6 +196,18 @@ rhoF_(transportProperties_.lookup("rho"))
         {
             dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
         }
+        if (dlvoDic.found("vdwMaxAcc"))
+        {
+            dlvoInfo::vdwMaxAcc_ = readScalar(dlvoDic.lookup("vdwMaxAcc"));
+        }
+        if (dlvoDic.found("eleMaxAcc"))
+        {
+            dlvoInfo::eleMaxAcc_ = readScalar(dlvoDic.lookup("eleMaxAcc"));
+        }
+        if (dlvoDic.found("lubMaxAcc"))
+        {
+            dlvoInfo::lubMaxAcc_ = readScalar(dlvoDic.lookup("lubMaxAcc"));
+        }
     }
 
     if(demDic.found("LcCoeff"))
@@ -1054,14 +1066,12 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             {
                 if(!syncOutForceKeyTable.found(cPair))
                 {
-                    Pout <<" -- cPair  "<<cInd << " - "<<tInd << " not found in syncOutForceKeyTable" << endl;
                     continue;
                 }
 
                 nvListIter = syncOutForceKeyTable[cPair];
                 if(nvListIter > cBodyOutForceList.size())
                 {
-                    Pout <<" -- cPair  "<<cInd << " - "<<tInd << " nvListIter > bodiesOutForceList[Pstream::myProcNo()].size()" << endl;
                     continue;
                 }
 

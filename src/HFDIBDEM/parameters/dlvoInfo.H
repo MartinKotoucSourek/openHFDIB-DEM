@@ -91,6 +91,21 @@ class dlvoInfo
         return minSurfDist_;
     };
 
+    static const scalar& getVdwMaxAcc()
+    {
+        return vdwMaxAcc_;
+    };
+
+    static const scalar& getEleMaxAcc()
+    {
+        return eleMaxAcc_;
+    };
+
+    static const scalar& getLubMaxAcc()
+    {
+        return lubMaxAcc_;
+    };
+
     static scalar A_;
     static scalar eps0_;
     static scalar epsR_;
@@ -98,7 +113,9 @@ class dlvoInfo
     static scalar recK_;
     static scalar cutOff_;
     static scalar minSurfDist_;
-
+    static scalar vdwMaxAcc_;
+    static scalar eleMaxAcc_;
+    static scalar lubMaxAcc_;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

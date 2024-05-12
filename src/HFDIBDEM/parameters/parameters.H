@@ -92,6 +92,9 @@ scalar dlvoInfo::zeta_ = 2e-2;
 scalar dlvoInfo::recK_ = 5e-9;
 scalar dlvoInfo::cutOff_ = 1e-5;
 scalar dlvoInfo::minSurfDist_ = 1e-10;
+scalar dlvoInfo::vdwMaxAcc_ = 0.1;
+scalar dlvoInfo::eleMaxAcc_ = 0.1;
+scalar dlvoInfo::lubMaxAcc_ = 0.1;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
