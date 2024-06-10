@@ -73,7 +73,7 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     scalar eleMaxForce = min(dlvoInfo::getEleMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getEleMaxAcc() * cInfo.gettClass().getGeomModel().getM());
     // scalar lubMaxForce = min(dlvoInfo::getLubMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getLubMaxAcc() * cInfo.gettClass().getGeomModel().getM());
 
-    Info << "sphere dlvo contact cGetM: " << cInfo.getcClass().getGeomModel().getM() << " tGetM: " << cInfo.gettClass().getGeomModel().getM() << endl;
+    // Info << "sphere dlvo contact cGetM: " << cInfo.getcClass().getGeomModel().getM() << " tGetM: " << cInfo.gettClass().getGeomModel().getM() << endl;
 
     scalar cRadius = cInfo.getcClass().getGeomModel().getDC() / 2;
     scalar tRadius = cInfo.gettClass().getGeomModel().getDC() / 2;
@@ -119,7 +119,7 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     if (std::abs(F_dlvo) > limitForce)
     {
-        Info << "DLVO force exceeds the maximum allowed force. Maximum: " << limitForce << " Current: " << F_dlvo << endl;
+        // Info << "DLVO force exceeds the maximum allowed force. Maximum: " << limitForce << " Current: " << F_dlvo << endl;
         F_dlvo = sign(F_dlvo) * limitForce;
     }
 
@@ -141,7 +141,7 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     // vector F_c = (F_dlvo + F_lubr) * cDirNorm;
     vector F_c = F_dlvo * cDirNorm;
-    Info << "F_c: " << F_c << endl;
+    // Info << "F_c: " << F_c << endl;
     vector F_t = - F_c;
 
     return {forces(F_c, vector::zero), forces(F_t, vector::zero)};
@@ -255,7 +255,7 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
             }
             catch(const std::exception& e)
             {
-                Info << e.what() << endl;
+                Info << "DLVO error: " << e.what() << endl;
             }
 
             returnF.first() += tmpF.first();

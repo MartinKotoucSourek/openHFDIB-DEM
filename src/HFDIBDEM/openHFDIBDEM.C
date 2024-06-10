@@ -763,7 +763,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         forAll (immersedBodies_,ib)
         {
-            Info << "Body " << ib << " velocity bef 1 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
 
             if(Pstream::myProcNo() == 0 )
@@ -1130,15 +1129,13 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         label  bodyId = 0;
         forAll (immersedBodies_,ib)
         {
-            Info << "Body " << ib << " velocity bef 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
-            Info << "Body " << ib << " velocity aft 2 " << immersedBodies_[ib].getVel() << endl;
-            // immersedBodies_[ib].computeBodyCoNumber();
-            // if (maxCoNum < immersedBodies_[ib].getCoNum())
-            // {
-                // maxCoNum = immersedBodies_[ib].getCoNum();
-                // bodyId = ib;
-            // }
+            immersedBodies_[ib].computeBodyCoNumber();
+            if (maxCoNum < immersedBodies_[ib].getCoNum())
+            {
+                maxCoNum = immersedBodies_[ib].getCoNum();
+                bodyId = ib;
+            }
         }
         // InfoH << basic_Info << "Max CoNum = " << maxCoNum << " at body " << bodyId << endl;
 
@@ -1180,7 +1177,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body created for body " << bodyId << endl;
+                    // Info << "Periodic body created for body " << bodyId << endl;
                 }
             }
             else
@@ -1196,7 +1193,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body unclustered for body " << bodyId << endl;
+                    // Info << "Periodic body unclustered for body " << bodyId << endl;
                 }
             }
         }
