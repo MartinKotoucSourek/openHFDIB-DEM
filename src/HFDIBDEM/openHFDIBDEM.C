@@ -524,11 +524,11 @@ void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
     reduce(particleCells,sumOp<List<label>>());
     reduce(particleInertiaTensors,sumOp<List<symmTensor>>());
 
-    Info << "mass list size " << particleMasses.size() << endl;
-    for (auto& m : particleMasses)
-    {
-        Info << "mass " << m << endl;
-    }
+    // Info << "mass list size " << particleMasses.size() << endl;
+    // for (auto& m : particleMasses)
+    // {
+    //     Info << "mass " << m << endl;
+    // }
 
     label bodyIndex(0);
     forAll (immersedBodies_,bodyId)
@@ -765,9 +765,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         forAll (immersedBodies_,ib)
         {
-            Info << "Body " << ib << " velocity bef 1 " << immersedBodies_[ib].getVel() << endl;
+            // Info << "Body " << ib << " velocity bef 1 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
-            Info << "Body " << ib << " velocity aft 1 " << immersedBodies_[ib].getVel() << endl;
+            // Info << "Body " << ib << " velocity aft 1 " << immersedBodies_[ib].getVel() << endl;
 
             if(Pstream::myProcNo() == 0 )
             {
@@ -1018,7 +1018,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         label nIter(0);
         for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
-            Info << "Contact Pair: " << it->first << " " << it->second << endl;
+            // Info << "Contact Pair: " << it->first << " " << it->second << endl;
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
             prtContactInfo& prtcInfo(getPrtcInfo(cPair));
@@ -1134,9 +1134,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         // label  bodyId = 0;
         forAll (immersedBodies_,ib)
         {
-            Info << "Body " << ib << " velocity bef 2 " << immersedBodies_[ib].getVel() << endl;
+            // Info << "Body " << ib << " velocity bef 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
-            Info << "Body " << ib << " velocity aft 2 " << immersedBodies_[ib].getVel() << endl;
+            // Info << "Body " << ib << " velocity aft 2 " << immersedBodies_[ib].getVel() << endl;
             immersedBodies_[ib].printBodyInfo();
             // immersedBodies_[ib].computeBodyCoNumber();
             // if (maxCoNum < immersedBodies_[ib].getCoNum())
@@ -1185,7 +1185,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body created for body " << bodyId << endl;
+                    // Info << "Periodic body created for body " << bodyId << endl;
                 }
             }
             else
@@ -1201,7 +1201,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body unclustered for body " << bodyId << endl;
+                    // Info << "Periodic body unclustered for body " << bodyId << endl;
                 }
             }
         }
