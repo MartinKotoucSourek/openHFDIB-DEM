@@ -45,6 +45,8 @@ Contributors
 
 #include "dlvoContactInfo.H"
 
+#include <optional>
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam

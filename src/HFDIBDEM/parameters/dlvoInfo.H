@@ -36,6 +36,8 @@ Contributors
 #ifndef dlvoInfo_H
 #define dlvoInfo_H
 
+#include <math.h>
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -76,9 +78,9 @@ class dlvoInfo
         return zeta_;
     };
 
-    static const scalar& getRecK()
+    static const scalar& getRecDebay()
     {
-        return recK_;
+        return recDebay_;
     };
 
     static const scalar& getCutOff()
@@ -121,11 +123,25 @@ class dlvoInfo
         return charCellSize_;
     };
 
+    static void computeFactorZ()
+    {
+        const scalar boltzmann = 1.38064852e-23;
+        const scalar temperature = 298.15;
+        const scalar elementaryCharge = 1.60217662e-19;
+        factorZ = 64.0 * 3.14 * eps0_ * epsR_ * pow(boltzmann * temperature / elementaryCharge, 2) * pow(tanh(elementaryCharge * zeta_ / (4 * boltzmann * temperature)), 2);
+    };
+
+    static const scalar& getFactorZ()
+    {
+        return factorZ;
+    };
+
     static scalar A_;
     static scalar eps0_;
     static scalar epsR_;
     static scalar zeta_;
-    static scalar recK_;
+    static scalar recDebay_;
+    static scalar factorZ;
     static scalar cutOff_;
     static scalar minSurfDist_;
     static scalar vdwMaxAcc_;

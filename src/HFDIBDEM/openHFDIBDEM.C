@@ -238,7 +238,7 @@ rhoF_(transportProperties_.lookup("rho"))
         }
         if (dlvoDic.found("recK"))
         {
-            dlvoInfo::recK_ = readScalar(dlvoDic.lookup("recK"));
+            dlvoInfo::recDebay_ = 1.0 / readScalar(dlvoDic.lookup("recK"));
         }
         if (dlvoDic.found("cutOff"))
         {
@@ -270,6 +270,7 @@ rhoF_(transportProperties_.lookup("rho"))
         }
 
         dlvoInfo::charCellSize_ = charCellSize;
+        dlvoInfo::computeFactorZ();
     }
 
     dictionary patchDic = demDic.subDict("collisionPatches");

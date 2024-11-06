@@ -34,6 +34,8 @@ Contributors
 #include "dlvoInfo.H"
 #include "periodicBody.H"
 
+#include <fstream>
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -64,13 +66,13 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 )
 {
     scalar A = dlvoInfo::getA();
-    scalar eps_0 = dlvoInfo::getEps0();
-    scalar eps_r = dlvoInfo::getEpsR();
-    scalar zeta = dlvoInfo::getZeta();
-    scalar recK = dlvoInfo::getRecK();
+    // scalar eps_0 = dlvoInfo::getEps0();
+    // scalar eps_r = dlvoInfo::getEpsR();
+    // scalar zeta = dlvoInfo::getZeta();
+    scalar recDebay = dlvoInfo::getRecDebay();
 
-    scalar vdwMaxForce = min(dlvoInfo::getVdwMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getVdwMaxAcc() * cInfo.gettClass().getGeomModel().getM());
-    scalar eleMaxForce = min(dlvoInfo::getEleMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getEleMaxAcc() * cInfo.gettClass().getGeomModel().getM());
+    // scalar vdwMaxForce = min(dlvoInfo::getVdwMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getVdwMaxAcc() * cInfo.gettClass().getGeomModel().getM());
+    // scalar eleMaxForce = min(dlvoInfo::getEleMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getEleMaxAcc() * cInfo.gettClass().getGeomModel().getM());
     // scalar lubMaxForce = min(dlvoInfo::getLubMaxAcc() * cInfo.getcClass().getGeomModel().getM(), dlvoInfo::getLubMaxAcc() * cInfo.gettClass().getGeomModel().getM());
 
     // Info << "sphere dlvo contact cGetM: " << cInfo.getcClass().getGeomModel().getM() << " tGetM: " << cInfo.gettClass().getGeomModel().getM() << endl;
@@ -85,15 +87,18 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     scalar surfDist = d - (cRadius + tRadius);
     surfDist = surfDist < dlvoInfo::getMinSurfDist() ? dlvoInfo::getMinSurfDist() : surfDist;
+    Info << "surfDist: " << surfDist << endl;
 
     scalar F_VdW = A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
     scalar F_elec = 0;
-    if (surfDist/recK < 100)
-    {
-        F_elec = -4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(recK*exp(surfDist/recK)+recK);
+    try {
+        F_elec = -recDebay * (cRadius*tRadius/(cRadius + tRadius)) * dlvoInfo::getFactorZ() * exp(-recDebay * surfDist);
+    }
+    catch (...) {
+        F_elec = 0;
     }
 
-    scalar limitForce = std::abs(F_VdW) > std::abs(F_elec) ? vdwMaxForce : eleMaxForce;
+    // scalar limitForce = std::abs(F_VdW) > std::abs(F_elec) ? vdwMaxForce : eleMaxForce;
 
     // if (std::abs(F_VdW) > vdwMaxForce)
     // {
@@ -118,11 +123,11 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     scalar F_dlvo = F_VdW + F_elec;
 
-    if (std::abs(F_dlvo) > limitForce)
-    {
-        // Info << "DLVO force exceeds the maximum allowed force. Maximum: " << limitForce << " Current: " << F_dlvo << endl;
-        F_dlvo = sign(F_dlvo) * limitForce;
-    }
+    // if (std::abs(F_dlvo) > limitForce)
+    // {
+    //     // Info << "DLVO force exceeds the maximum allowed force. Maximum: " << limitForce << " Current: " << F_dlvo << endl;
+    //     F_dlvo = sign(F_dlvo) * limitForce;
+    // }
 
     vector cDirNorm = centerDir/mag(centerDir);
 
