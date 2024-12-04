@@ -77,21 +77,20 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     scalar cRadius = cInfo.getcClass().getGeomModel().getDC() / 2;
     scalar tRadius = cInfo.gettClass().getGeomModel().getDC() / 2;
+    vector cCenter = cInfo.getcClass().getGeomModel().getCoM();
     vector tCenter = cInfo.gettClass().getGeomModel().getCoM();
 
-    vector centerDir = cInfo.getcClass().getGeomModel().getCoM()
-                        - tCenter;
-
+    vector centerDir = tCenter - cCenter;
     scalar d = mag(centerDir);
 
     scalar surfDist = d - (cRadius + tRadius);
     surfDist = surfDist < dlvoInfo::getMinSurfDist() ? dlvoInfo::getMinSurfDist() : surfDist;
 
-    scalar F_VdW = -A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
+    scalar F_VdW = A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
     scalar F_elec = 0;
     if (surfDist/recK < 100)
     {
-        F_elec = 4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(recK*exp(surfDist/recK)+recK);
+        F_elec = -4*3.14*eps_0*eps_r*zeta*zeta*(cRadius*tRadius/(cRadius + tRadius))/(recK*exp(surfDist/recK)+recK);
     }
 
     scalar limitForce = std::abs(F_VdW) > std::abs(F_elec) ? vdwMaxForce : eleMaxForce;
@@ -115,6 +114,8 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     //     Info << "Max elec force: " << eleMaxForce << " Current: " << F_elec << endl;
     // }
 
+    // Info << "MKS F_VdW: " << F_VdW << " F_elec: " << F_elec << " surfDist: " << surfDist << " limitForce: " << limitForce << endl;
+
     scalar F_dlvo = F_VdW + F_elec;
 
     if (std::abs(F_dlvo) > limitForce)
@@ -126,25 +127,61 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     vector cDirNorm = centerDir/mag(centerDir);
 
     // Lubrication force
-    // scalar vn = -(cInfo.getcVars().Vel_ - cInfo.gettVars().Vel_) & cDirNorm;
-    // Info << "F_ vn: " << vn << endl;
-    // scalar F_lubr = 6*3.14*rhoF.value()*nuF.value()*pow(cRadius*tRadius/(cRadius + tRadius), 2)*vn/(surfDist);
-    // if (std::abs(F_lubr) > lubMaxForce)
-    // {
-    //     Info << "Lubrication force exceeds the maximum allowed force. Maximum: " << lubMaxForce << " Current: " << F_lubr << endl;
-    //     F_lubr = sign(F_lubr) * lubMaxForce;
-    // }
-    // else
-    // {
-    //     Info << "Max lubr force: " << lubMaxForce << " Current: " << F_lubr << endl;
-    // }
 
-    // vector F_c = (F_dlvo + F_lubr) * cDirNorm;
+    // scalar beta = tRadius / cRadius;
+    // scalar beta_m1 = 1 / beta;
+    // scalar psi_m1 = 1 / (surfDist / ((tRadius + cRadius) / 2));
+    // scalar log_psi_m1 = log(psi_m1);
+
+    // scalar Y_B_11 = -12.56 * pow(cRadius, 2) * ((beta*(4 + beta)*log_psi_m1 / (5*pow(1+beta, 2))));
+    // scalar Y_B_21 = -12.56 * pow(tRadius, 2) * ((beta_m1*(4 + beta_m1)*log_psi_m1 / (5*pow(1+beta_m1, 2))));
+
+    // scalar m8_pi_pow_cRadius_3 = 25.12 * pow(cRadius, 3);
+    // scalar Y_C_11 = m8_pi_pow_cRadius_3 * (2.0*beta*log_psi_m1 / (5*(1+beta)));
+    // scalar Y_C_12 = m8_pi_pow_cRadius_3 * (pow(beta, 2)*log_psi_m1 / (10*(1+beta)));
+
+    // scalar m8_pi_pow_tRadius_3 = 25.12 * pow(tRadius, 3);
+    // scalar Y_C_21 = m8_pi_pow_tRadius_3 * (pow(beta_m1, 2)*log_psi_m1 / (10*(1+beta_m1)));
+    // scalar Y_C_22 = m8_pi_pow_tRadius_3 * (2.0*beta_m1*log_psi_m1 / (5*(1+beta_m1)));
+
+    scalar lower_limit = 0.5 * dlvoInfo::getCharCellSize();
+    scalar upper_limit = 2.5 * dlvoInfo::getCharCellSize();
+
+    scalar limFunction = surfDist <= lower_limit ? 1 : surfDist >= upper_limit ? 0 : 0.5 * (1 + Foam::cos(3.14 * (surfDist - lower_limit) / (upper_limit - lower_limit)));
+
+    vector cCntPointDir = cRadius * cDirNorm;
+    vector tCntPointDir = - tRadius * cDirNorm;
+
+    vector cPlanarVec =  cCntPointDir - cInfo.getcVars().Axis_*(cCntPointDir&cInfo.getcVars().Axis_);
+    vector tPlanarVec =  tCntPointDir - cInfo.gettVars().Axis_*(tCntPointDir&cInfo.gettVars().Axis_);
+
+    vector cCntPVel = (-(cPlanarVec^cInfo.getcVars().Axis_)*cInfo.getcVars().omega_ + cInfo.getcVars().Vel_);
+    vector tCntPVel = (-(tPlanarVec^cInfo.gettVars().Axis_)*cInfo.gettVars().omega_ + cInfo.gettVars().Vel_);
+
+    vector relativeTanVel = cCntPVel - tCntPVel;
+
+    vector F_t_lubr = 6 * 3.14 * rhoF.value() * nuF.value() * pow((cRadius*tRadius/(cRadius + tRadius)), 2) * relativeTanVel / surfDist;
+
+    // Info << "limFunction: " << limFunction << " cInfo.getcVars().Axis_: " << cInfo.getcVars().Axis_ << " cInfo.getcVars().omega_: " << cInfo.getcVars().omega_ << endl;
+    // Info << "t: " << " cInfo.gettVars().Axis_: " << cInfo.gettVars().Axis_ << " cInfo.gettVars().omega_: " << cInfo.gettVars().omega_ << endl;
+
+    Info << "cCenter: " << cCenter << endl;
+    Info << "tCenter: " << tCenter << endl;
+    Info << "cCntPointDir: " << cCntPointDir << endl;
+    Info << "tCntPointDir: " << tCntPointDir << endl;
+    Info << "F_t_lubr: " << F_t_lubr << endl;
+
+    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_t_lubr));
+    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_t_lubr);
+
+    Info << "T_c: " << T_c << " T_t: " << T_t << endl;
+
+    // Info << "T_C: " << T_c << " T_t: " << T_t << endl;
     vector F_c = F_dlvo * cDirNorm;
     // Info << "F_c: " << F_c << endl;
     vector F_t = - F_c;
 
-    return {forces(F_c, vector::zero), forces(F_t, vector::zero)};
+    return {forces(F_c, T_c), forces(F_t, T_t)};
 }
 //---------------------------------------------------------------------------//
 Tuple2<forces,forces> solveDlvoContact_Cluster

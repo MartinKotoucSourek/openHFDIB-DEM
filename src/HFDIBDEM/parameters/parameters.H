@@ -94,6 +94,8 @@ scalar dlvoInfo::minSurfDist_ = 1e-10;
 scalar dlvoInfo::vdwMaxAcc_ = 0.1;
 scalar dlvoInfo::eleMaxAcc_ = 0.1;
 scalar dlvoInfo::lubMaxAcc_ = 0.1;
+scalar dlvoInfo::tanLubrC_ = 0.1;
+scalar dlvoInfo::charCellSize_ = 0.1;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

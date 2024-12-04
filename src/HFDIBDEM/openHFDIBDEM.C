@@ -197,6 +197,19 @@ rhoF_(transportProperties_.lookup("rho"))
     }
 
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
+    scalar charCellSize = pow(mesh_.V()[1], 1.0/3.0);
+    scalar vMeshLevel = 1;
+
+    if (HFDIBDEMDict_.isDict("virtualMesh"))
+    {
+        dictionary vMDic = HFDIBDEMDict_.subDict("virtualMesh");
+        vMeshLevel = readScalar(vMDic.lookup("level"));
+        charCellSize = readScalar(vMDic.lookup("charCellSize"));
+    }
+
+    virtualMeshLevel::setVirtualMeshLevel(vMeshLevel,charCellSize);
+    Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
+    Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
 
     if(demDic.found("dlvo"))
     {
@@ -242,6 +255,12 @@ rhoF_(transportProperties_.lookup("rho"))
         {
             dlvoInfo::lubMaxAcc_ = readScalar(dlvoDic.lookup("lubMaxAcc"));
         }
+        if (dlvoDic.found("tanLubrC"))
+        {
+            dlvoInfo::tanLubrC_ = readScalar(dlvoDic.lookup("tanLubrC"));
+        }
+
+        dlvoInfo::charCellSize_ = charCellSize;
     }
 
     dictionary patchDic = demDic.subDict("collisionPatches");
@@ -303,22 +322,6 @@ rhoF_(transportProperties_.lookup("rho"))
             emptyDim = direction;
             break;
         }
-    }
-
-    if (HFDIBDEMDict_.isDict("virtualMesh"))
-    {
-        dictionary vMDic = HFDIBDEMDict_.subDict("virtualMesh");
-        virtualMeshLevel::setVirtualMeshLevel(readScalar(vMDic.lookup("level")),readScalar(vMDic.lookup("charCellSize")));
-        Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
-        Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
-
-    }
-    else
-    {
-        virtualMeshLevel::setVirtualMeshLevel(1,1);
-        Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
-        Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
-
     }
 
     recordOutDir_ = mesh_.time().rootPath() + "/" + mesh_.time().globalCaseName() + "/bodiesInfo";
@@ -740,25 +743,25 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> contactResolvedKeyTable;
     HashTable <label,label,Hash<label>> wallContactIBTable;
 
-    volScalarField surface = body;
-    forAll(surface, sI)
-    {
-        if (body[sI] > 0)
-            surface[sI] = 1;
-        else
-            surface[sI] = 0;
-    }
+    // volScalarField surface = body;
+    // forAll(surface, sI)
+    // {
+    //     if (body[sI] > 0)
+    //         surface[sI] = 1;
+    //     else
+    //         surface[sI] = 0;
+    // }
 
     while( pos < 1)
     {
         // Updating fluid force
-        volVectorField cUi = Ui;
-        interpolateIB(U, cUi, body);
-        volVectorField cf = f + surface*(cUi - U)/mesh_.time().deltaT();
-        forAll (immersedBodies_,bodyId)
-        {
-            immersedBodies_[bodyId].updateCoupling(body, cf);
-        }
+        // volVectorField cUi = Ui;
+        // interpolateIB(U, cUi, body);
+        // volVectorField cf = f + surface*(cUi - U)/mesh_.time().deltaT();
+        // forAll (immersedBodies_,bodyId)
+        // {
+        //     immersedBodies_[bodyId].updateCoupling(body, cf);
+        // }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos
             << " DEM step: " << step << endl;
@@ -823,6 +826,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             {
                 // set F_ and T_ to zero.
                 cIb.resetContactForces();
+                cIb.resetDlvoForces();
 
                 if(cIb.getbodyOperation() != 0)
                 {
@@ -1115,12 +1119,14 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
             Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
 
-            immersedBodies_[cInd].updateContactForces
+            // Info << "omega: " << immersedBodies_[cInd].getContactVars().omega_ << " axis; " << immersedBodies_[cInd].getContactVars().Axis_ << " cind: " << cInd << " dlvoForces.first(): " << dlvoForces.first().T << endl;
+
+            immersedBodies_[cInd].updateDlvoForces
             (
                 dlvoForces.first()
             );
 
-            immersedBodies_[tInd].updateContactForces
+            immersedBodies_[tInd].updateDlvoForces
             (
                 dlvoForces.second()
             );

@@ -106,6 +106,16 @@ class dlvoInfo
         return lubMaxAcc_;
     };
 
+    static const scalar& getTanLubrC()
+    {
+        return tanLubrC_;
+    };
+
+    static const scalar& getCharCellSize()
+    {
+        return charCellSize_;
+    };
+
     static scalar A_;
     static scalar eps0_;
     static scalar epsR_;
@@ -116,6 +126,8 @@ class dlvoInfo
     static scalar vdwMaxAcc_;
     static scalar eleMaxAcc_;
     static scalar lubMaxAcc_;
+    static scalar tanLubrC_;
+    static scalar charCellSize_;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

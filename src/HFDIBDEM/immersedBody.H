@@ -127,6 +127,9 @@ namespace Foam
         // forces acting on the particle due to the contact
         forces FContact_;
 
+        // forces acting on the particle due to the dlvo theory
+        forces FDlvo_;
+
         // maximal body Courant number based on its linear velocity
         scalar CoNum_;
 
@@ -357,6 +360,21 @@ namespace Foam
             FContact_ += F;
         }
 
+        // update contact forces
+        void updateDlvoForces
+        (
+            const forces& F
+        )
+        {
+            FDlvo_ += F;
+        }
+
+        // get dlvo forces
+        forces& getDlvoForces()
+        {
+            return FDlvo_;
+        }
+
         void setWallContact(bool inContact)
         {
             ibContactClass_->setWallContact(inContact);
@@ -388,6 +406,12 @@ namespace Foam
         void resetContactForces()
         {
             FContact_.clear();
+        }
+
+        // reset dlvo forces
+        void resetDlvoForces()
+        {
+            FDlvo_.clear();
         }
 
         void switchActiveOff(volScalarField& body);
@@ -497,6 +521,14 @@ namespace Foam
             VelOld_   = Vel_;
             AxisOld_  = Axis_;
             omegaOld_ = omega_;
+        }
+
+        // reset old movement variables for fluid-solid coupling
+        void resetOldMovementVars()
+        {
+            Vel_   = VelOld_;
+            Axis_  = AxisOld_;
+            omega_ = omegaOld_;
         }
 
         void writeIbInfo()

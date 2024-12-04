@@ -479,9 +479,7 @@ void immersedBody::postPimpleUpdateImmersedBody
     // update Vel_, Axis_ and omega_
     updateCoupling(body,f);
 
-    Vel_ = VelOld_;
-    Axis_ = AxisOld_;
-    omega_ = omegaOld_;
+    resetOldMovementVars();
 }
 //---------------------------------------------------------------------------//
 void immersedBody::updateCoupling
@@ -582,7 +580,10 @@ void immersedBody::updateMovementComp
         // Info << "-- body "<< bodyId_ <<" Force FContact_.F  : " << FContact_.F << endl;
         vector F(FCoupling_.F);
         F += FContact_.F;
+        F += FDlvo_.F;
         F += FG;
+
+        Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FG  : " << FG << endl;
 
         if(!case3D)
         {
@@ -608,6 +609,9 @@ void immersedBody::updateMovementComp
         {
             vector T(FCoupling_.T);
             T += FContact_.T;
+            T += FDlvo_.T;
+
+            Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
 
             // update body angular acceleration
             alpha_ = inv(geomModel_->getI()) & T;
@@ -642,6 +646,7 @@ void immersedBody::updateMovementComp
     {
         vector T(FCoupling_.T);
         T += FContact_.T;
+        T += FDlvo_.T;
 
         // update body angular velocity
         vector Omega(Axis*omega + deltaT * (inv(geomModel_->getI()) & T));
