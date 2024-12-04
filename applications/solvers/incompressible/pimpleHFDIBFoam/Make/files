@@ -1,3 +1,5 @@
+hfdibPimpleLoop.C
+hfdibPimpleControl.C
 pimpleHFDIBFoam.C
 
 EXE = $(FOAM_USER_APPBIN)/pimpleHFDIBFoam

@@ -37,6 +37,7 @@ Description
 #include "singlePhaseTransportModel.H"
 #include "kinematicMomentumTransportModel.H"
 #include "pimpleControl.H"
+#include "hfdibPimpleControl.H"
 #include "CorrectPhi.H"
 #include "fvOptions.H"
 #include "localEulerDdtScheme.H"
@@ -55,7 +56,11 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "initContinuityErrs.H"
-    #include "createDyMControls.H"
+
+    // HFDIBDEM is needed in createHfdibDyMControls
+    openHFDIBDEM  HFDIBDEM(mesh);
+    #include "createHfdibDyMControls.H"
+
     #include "createFields.H"
     #include "createUfIfPresent.H"
 
@@ -72,7 +77,6 @@ int main(int argc, char *argv[])
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info << "\nInitializing HFDIBDEM\n" << endl;
-    openHFDIBDEM  HFDIBDEM(mesh);
     HFDIBDEM.initialize(lambda,U,refineF,maxRefinementLevel,runTime.timeName());
     #include "initialMeshRefinement.H"
 

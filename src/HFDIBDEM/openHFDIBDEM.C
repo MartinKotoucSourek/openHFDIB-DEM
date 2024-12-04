@@ -99,6 +99,11 @@ rhoF_(transportProperties_.lookup("rho"))
         solverInfo::setNSolidsTreshnold(readLabel(HFDIBDEMDict_.lookup("nSolidsInDomain")));
     }
 
+    if(HFDIBDEMDict_.found("minPimpleLoops"))
+    {
+        minPimpleLoops_ = readLabel(HFDIBDEMDict_.lookup("minPimpleLoops"));
+    }
+
     dictionary demDic = HFDIBDEMDict_.subDict("DEM");
     dictionary materialsDic = demDic.subDict("materials");
     List<word> materialsNames = materialsDic.toc();

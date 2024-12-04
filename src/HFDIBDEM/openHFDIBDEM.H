@@ -130,6 +130,8 @@ namespace Foam
     dimensionedScalar nuF_;
     dimensionedScalar rhoF_;
 
+    label minPimpleLoops_ = 0;
+
     public:
 
     // Constructors ----------------------------------------------------
@@ -149,6 +151,11 @@ namespace Foam
     // scalar demItegrationTime_ = 0.0;
 
     void initialize(volScalarField& body,volVectorField& U,volScalarField& refineF,label recomputeM0, word runTime);
+
+    label minPimpleLoops()
+    {
+        return minPimpleLoops_;
+    }
 
     void createBodies
     (
