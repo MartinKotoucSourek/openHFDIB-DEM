@@ -131,6 +131,7 @@ namespace Foam
     dimensionedScalar rhoF_;
 
     label minPimpleLoops_ = 0;
+    scalar theta_ = 1.0; // relaxation factor for the fluid-solid coupling
 
     public:
 

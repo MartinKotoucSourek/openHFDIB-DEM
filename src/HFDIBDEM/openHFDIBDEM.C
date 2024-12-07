@@ -103,6 +103,11 @@ rhoF_(transportProperties_.lookup("rho"))
     {
         minPimpleLoops_ = readLabel(HFDIBDEMDict_.lookup("minPimpleLoops"));
     }
+    if (HFDIBDEMDict_.found("theta"))
+    {
+        theta_ = readScalar(HFDIBDEMDict_.lookup("theta"));
+        InfoH << basic_Info << "Theta relaxation factor is set to : " << theta_ << endl;
+    }
 
     dictionary demDic = HFDIBDEMDict_.subDict("DEM");
     dictionary materialsDic = demDic.subDict("materials");
@@ -743,31 +748,31 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> contactResolvedKeyTable;
     HashTable <label,label,Hash<label>> wallContactIBTable;
 
-    // volScalarField surface = body;
-    // forAll(surface, sI)
-    // {
-    //     if (body[sI] > 0)
-    //         surface[sI] = 1;
-    //     else
-    //         surface[sI] = 0;
-    // }
+    volScalarField surface = body;
+    forAll(surface, sI)
+    {
+        if (body[sI] > 0)
+            surface[sI] = 1;
+        else
+            surface[sI] = 0;
+    }
 
     while( pos < 1)
     {
         // Updating fluid force
-        // volVectorField cUi = Ui;
-        // interpolateIB(U, cUi, body);
-        // volVectorField cf = f + surface*(cUi - U)/mesh_.time().deltaT();
-        // forAll (immersedBodies_,bodyId)
-        // {
-        //     immersedBodies_[bodyId].updateCoupling(body, cf);
-        // }
+        volVectorField cUi = Ui;
+        interpolateIB(U, cUi, body);
+        volVectorField cf = f + theta_ * surface*(cUi - U)/(mesh_.time().deltaT() * step);
+        forAll (immersedBodies_,bodyId)
+        {
+            immersedBodies_[bodyId].updateCoupling(body, cf);
+        }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos
             << " DEM step: " << step << endl;
 
         InfoH << basic_Info << " DEM - CFD Time: "
-            << mesh_.time().value() + deltaTime*pos << endl;
+            << mesh_.time().value() - deltaTime*(1-pos) << endl;
 
         forAll (immersedBodies_,ib)
         {
