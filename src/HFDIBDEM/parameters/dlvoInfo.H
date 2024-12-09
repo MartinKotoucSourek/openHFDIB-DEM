@@ -111,6 +111,11 @@ class dlvoInfo
         return tanLubrC_;
     };
 
+    static const scalar& getTanLubrRelax()
+    {
+        return tanLubrRelax_;
+    };
+
     static const scalar& getCharCellSize()
     {
         return charCellSize_;
@@ -127,6 +132,7 @@ class dlvoInfo
     static scalar eleMaxAcc_;
     static scalar lubMaxAcc_;
     static scalar tanLubrC_;
+    static scalar tanLubrRelax_;
     static scalar charCellSize_;
 };
 

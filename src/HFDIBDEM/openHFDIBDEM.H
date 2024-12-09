@@ -132,6 +132,7 @@ namespace Foam
 
     label minPimpleLoops_ = 0;
     scalar theta_ = 1.0; // relaxation factor for the fluid-solid coupling
+    HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairs_;
 
     public:
 

@@ -69,6 +69,8 @@ class dlvoContactInfo
 
     Tuple2<label,label> contactPair_;
 
+    vector lastTangLubrForce_;
+
     public:
 
     // Constructors ------------------------------------------------
@@ -107,6 +109,11 @@ class dlvoContactInfo
     ibContactVars& gettVars()
     {
         return tIbContactVars_;
+    }
+
+    vector& getLastTangLubrForce()
+    {
+        return lastTangLubrForce_;
     }
 };
 

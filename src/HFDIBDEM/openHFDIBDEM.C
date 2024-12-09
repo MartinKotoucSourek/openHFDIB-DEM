@@ -264,6 +264,10 @@ rhoF_(transportProperties_.lookup("rho"))
         {
             dlvoInfo::tanLubrC_ = readScalar(dlvoDic.lookup("tanLubrC"));
         }
+        if (dlvoDic.found("tanLubrRelax"))
+        {
+            dlvoInfo::tanLubrRelax_ = readScalar(dlvoDic.lookup("tanLubrRelax"));
+        }
 
         dlvoInfo::charCellSize_ = charCellSize;
     }
@@ -1114,6 +1118,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             }
         }
 
+        HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairsNew_;
+
         for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
@@ -1122,7 +1128,12 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
             dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars());
 
+            if (dlvoPairs_.found(cPair))
+            {
+                dlvoInfo.getLastTangLubrForce() = dlvoPairs_[cPair];
+            }
             Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
+            dlvoPairsNew_.insert(cPair, dlvoInfo.getLastTangLubrForce());
 
             // Info << "omega: " << immersedBodies_[cInd].getContactVars().omega_ << " axis; " << immersedBodies_[cInd].getContactVars().Axis_ << " cind: " << cInd << " dlvoForces.first(): " << dlvoForces.first().T << endl;
 
@@ -1136,6 +1147,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
                 dlvoForces.second()
             );
         }
+
+        dlvoPairs_ = std::move(dlvoPairsNew_);
 
         // reduce(resolvedPrtContacts,sumOp<label>());
         // InfoH << basic_Info << " -- Possible Particle Contacts: " << possiblePrtContacts

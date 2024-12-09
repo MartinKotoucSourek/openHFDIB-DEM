@@ -45,7 +45,8 @@ dlvoContactInfo::dlvoContactInfo
 cIbContactClass_(cClass),
 tIbContactClass_(tClass),
 cIbContactVars_(cVars),
-tIbContactVars_(tVars)
+tIbContactVars_(tVars),
+lastTangLubrForce_(vector::zero)
 {
     contactPair_.first() = cIbContactVars_.bodyId_;
     contactPair_.second() = tIbContactVars_.bodyId_;

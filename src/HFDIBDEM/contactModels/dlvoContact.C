@@ -144,8 +144,8 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     // scalar Y_C_21 = m8_pi_pow_tRadius_3 * (pow(beta_m1, 2)*log_psi_m1 / (10*(1+beta_m1)));
     // scalar Y_C_22 = m8_pi_pow_tRadius_3 * (2.0*beta_m1*log_psi_m1 / (5*(1+beta_m1)));
 
-    scalar lower_limit = 0.5 * dlvoInfo::getCharCellSize();
-    scalar upper_limit = 2.5 * dlvoInfo::getCharCellSize();
+    scalar lower_limit = 1.0 * dlvoInfo::getCharCellSize();
+    scalar upper_limit = 5.0 * dlvoInfo::getCharCellSize();
 
     scalar limFunction = surfDist <= lower_limit ? 1 : surfDist >= upper_limit ? 0 : 0.5 * (1 + Foam::cos(3.14 * (surfDist - lower_limit) / (upper_limit - lower_limit)));
 
@@ -161,6 +161,8 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     vector relativeTanVel = cCntPVel - tCntPVel;
 
     vector F_t_lubr = 6 * 3.14 * rhoF.value() * nuF.value() * pow((cRadius*tRadius/(cRadius + tRadius)), 2) * relativeTanVel / surfDist;
+    vector F_t_lubr_relaxed = cInfo.getLastTangLubrForce() + dlvoInfo::getTanLubrRelax() * (F_t_lubr - cInfo.getLastTangLubrForce());
+    cInfo.getLastTangLubrForce() = F_t_lubr_relaxed;
 
     // Info << "limFunction: " << limFunction << " cInfo.getcVars().Axis_: " << cInfo.getcVars().Axis_ << " cInfo.getcVars().omega_: " << cInfo.getcVars().omega_ << endl;
     // Info << "t: " << " cInfo.gettVars().Axis_: " << cInfo.gettVars().Axis_ << " cInfo.gettVars().omega_: " << cInfo.gettVars().omega_ << endl;
@@ -169,10 +171,12 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     Info << "tCenter: " << tCenter << endl;
     Info << "cCntPointDir: " << cCntPointDir << endl;
     Info << "tCntPointDir: " << tCntPointDir << endl;
+    Info << "relativeTanVel: " << relativeTanVel << endl;
     Info << "F_t_lubr: " << F_t_lubr << endl;
+    Info << "F_t_lubr_relaxed: " << F_t_lubr_relaxed << endl;
 
-    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_t_lubr));
-    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_t_lubr);
+    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_t_lubr_relaxed));
+    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_t_lubr_relaxed);
 
     Info << "T_c: " << T_c << " T_t: " << T_t << endl;
 
