@@ -71,55 +71,6 @@ void vCntcList::addBodyToVList(immersedBody& ib)
     }
 }
 //---------------------------------------------------------------------------//
-// void vCntcList::removeBodyFromVList(immersedBody& ib)
-// {
-//     forAll (verletLists_, coordI)
-//     {
-//         verletLists_[coordI].remove_if(
-//             [&ib](std::shared_ptr<verletPoint>& vPoint)
-//             {
-//                 return vPoint->getBodyId() == ib.getBodyId();
-//             }
-//         );
-
-//         for (auto it = cntNeighList_[coordI].begin();
-//             it != cntNeighList_[coordI].end();)
-//         {
-//             if (it->first.first == ib.getBodyId()
-//                 ||
-//                 it->first.second == ib.getBodyId())
-//             {
-//                 it = cntNeighList_[coordI].erase(it);
-//             }
-//             else
-//             {
-//                 ++it;
-//             }
-//         }
-//     }
-
-//     verletBoxes_.remove_if(
-//         [&ib](std::shared_ptr<verletBox>& vBox)
-//         {
-//             return vBox->getBodyId() == ib.getBodyId();
-//         }
-//     );
-
-//     for (auto iter = posCntList_.begin(); iter != posCntList_.end();)
-//     {
-//         if (iter->first == ib.getBodyId()
-//             ||
-//             iter->second == ib.getBodyId())
-//         {
-//             iter = posCntList_.erase(iter);
-//         }
-//         else
-//         {
-//             ++iter;
-//         }
-//     }
-// }
-//---------------------------------------------------------------------------//
 void vCntcList::update(PtrList<immersedBody>& ibs)
 {
     forAll(ibs, ibi)

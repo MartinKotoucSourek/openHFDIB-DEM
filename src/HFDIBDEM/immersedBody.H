@@ -208,9 +208,9 @@ namespace Foam
         (
             scalar deltaT = -1.0
         );
-        
+
         void printBodyInfo();
-        
+
         //update body movement based on acting forces
         void updateMovement
         (
@@ -536,7 +536,7 @@ namespace Foam
             InfoH << iB_Info;
             InfoH << "-- body " << bodyId_ << " center of mass       : " << geomModel_->getCoM() << endl;
             InfoH << "-- body " << bodyId_ << " linear velocity      : " << Vel_ << endl;
-            InfoH << "-- body " << bodyId_ << " angluar velocity     : " << omega_ << endl;
+            InfoH << "-- body " << bodyId_ << " angular velocity     : " << omega_ << endl;
             InfoH << "-- body " << bodyId_ << " axis of rotation     : " << Axis_ << endl;
         }
 

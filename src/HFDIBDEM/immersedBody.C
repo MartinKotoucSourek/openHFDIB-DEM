@@ -695,64 +695,47 @@ void immersedBody::moveImmersedBody
 {
     if (bodyOperation_ == 0) return;
 
-    // if (geomModel_->getOwner() == Pstream::myProcNo())
-    // {
-        if (mag(deltaT + 1.0) < SMALL) deltaT = mesh_.time().deltaT().value();
+    if (mag(deltaT + 1.0) < SMALL) deltaT = mesh_.time().deltaT().value();
 
-        // incremental rotation angle
-        scalar angle     = omega_*deltaT;
+    // incremental rotation angle
+    scalar angle     = omega_*deltaT;
 
-        // translation increment
-        vector transIncr = Vel_*deltaT;
+    // translation increment
+    vector transIncr = Vel_*deltaT;
 
-        // rotation matrix
-        tensor rotMatrix(Foam::cos(angle)*tensor::I);
-        rotMatrix += Foam::sin(angle)*tensor(
-            0.0,      -Axis_.z(),  Axis_.y(),
-            Axis_.z(), 0.0,       -Axis_.x(),
-            -Axis_.y(), Axis_.x(),  0.0
-        );
-        rotMatrix += (1.0-Foam::cos(angle))*(Axis_ * Axis_);
+    // rotation matrix
+    tensor rotMatrix(Foam::cos(angle)*tensor::I);
+    rotMatrix += Foam::sin(angle)*tensor(
+        0.0,      -Axis_.z(),  Axis_.y(),
+        Axis_.z(), 0.0,       -Axis_.x(),
+        -Axis_.y(), Axis_.x(),  0.0
+    );
+    rotMatrix += (1.0-Foam::cos(angle))*(Axis_ * Axis_);
 
-        // update total rotation matrix
-        totRotMatrix_ = rotMatrix & totRotMatrix_;
-        vector eulerAngles;
-        scalar sy = Foam::sqrt(totRotMatrix_.xx()*totRotMatrix_.xx()
-            + totRotMatrix_.yy()*totRotMatrix_.yy());
+    // update total rotation matrix
+    totRotMatrix_ = rotMatrix & totRotMatrix_;
+    vector eulerAngles;
+    scalar sy = Foam::sqrt(totRotMatrix_.xx()*totRotMatrix_.xx()
+        + totRotMatrix_.yy()*totRotMatrix_.yy());
 
-        if (sy > SMALL)
-        {
-            eulerAngles.x() =
-                Foam::atan2(totRotMatrix_.zy(),totRotMatrix_.zz());
-            eulerAngles.y() = Foam::atan2(-totRotMatrix_.zx(),sy);
-            eulerAngles.z() =
-                Foam::atan2(totRotMatrix_.yx(),totRotMatrix_.xx());
-        }
-        else
-        {
-            eulerAngles.x() =
-                Foam::atan2(-totRotMatrix_.yz(),totRotMatrix_.yy());
-            eulerAngles.y() = Foam::atan2(-totRotMatrix_.zx(),sy);
-            eulerAngles.z() = 0.0;
-        }
+    if (sy > SMALL)
+    {
+        eulerAngles.x() =
+            Foam::atan2(totRotMatrix_.zy(),totRotMatrix_.zz());
+        eulerAngles.y() = Foam::atan2(-totRotMatrix_.zx(),sy);
+        eulerAngles.z() =
+            Foam::atan2(totRotMatrix_.yx(),totRotMatrix_.xx());
+    }
+    else
+    {
+        eulerAngles.x() =
+            Foam::atan2(-totRotMatrix_.yz(),totRotMatrix_.yy());
+        eulerAngles.y() = Foam::atan2(-totRotMatrix_.zx(),sy);
+        eulerAngles.z() = 0.0;
+    }
 
-        geomModel_->bodyRotatePoints(angle,Axis_);
-        geomModel_->bodyMovePoints(transIncr);
-    // }
-
-    // geomModel_->synchronPos();
-
-    // InfoH << iB_Info;
-    // InfoH << "-- body " << bodyId_ << " CoM                  : "
-    //     << geomModel_->getCoM() << endl;
-    // InfoH << "-- body " << bodyId_ << " linear velocity      : "
-    //     << Vel_ << endl;
-    // InfoH << "-- body " << bodyId_ << " angluar velocity     : "
-    //     << omega_ << endl;
-    // InfoH << "-- body " << bodyId_ << " axis of rotation     : "
-    //     << Axis_ << endl;
-    // InfoH << "-- body " << bodyId_ << " total rotation matrix: "
-    //     << totRotMatrix_ << endl;
+    geomModel_->bodyRotatePoints(angle,Axis_);
+    geomModel_->bodyMovePoints(transIncr);
 }
 //---------------------------------------------------------------------------//
 void immersedBody::printBodyInfo()
@@ -762,7 +745,7 @@ void immersedBody::printBodyInfo()
         << geomModel_->getCoM() << endl;
     InfoH << "-- body " << bodyId_ << " linear velocity      : "
         << Vel_ << endl;
-    InfoH << "-- body " << bodyId_ << " angluar velocity     : "
+    InfoH << "-- body " << bodyId_ << " angular velocity     : "
         << omega_ << endl;
     InfoH << "-- body " << bodyId_ << " axis of rotation     : "
         << Axis_ << endl;
@@ -860,10 +843,6 @@ vectorField immersedBody::getUatIbPoints()
     vectorField ibPointsVal(ibPoints.size());
     forAll(ibPoints, pointI)
     {
-        // vector planarVec =  geomModel_->getLVec(ibPoints[pointI])
-        //                     - Axis_*(
-        //                     (geomModel_->getLVec(ibPoints[pointI]))&Axis_);
-
         vector planarVec =  ibPoints[pointI] - geomModel_->getCoM()
                             - Axis_*(
                             (ibPoints[pointI]-geomModel_->getCoM())&Axis_);

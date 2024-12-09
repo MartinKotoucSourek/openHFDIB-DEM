@@ -93,21 +93,6 @@ class dlvoInfo
         return minSurfDist_;
     };
 
-    static const scalar& getVdwMaxAcc()
-    {
-        return vdwMaxAcc_;
-    };
-
-    static const scalar& getEleMaxAcc()
-    {
-        return eleMaxAcc_;
-    };
-
-    static const scalar& getLubMaxAcc()
-    {
-        return lubMaxAcc_;
-    };
-
     static const scalar& getTanLubrC()
     {
         return tanLubrC_;
@@ -144,9 +129,6 @@ class dlvoInfo
     static scalar factorZ;
     static scalar cutOff_;
     static scalar minSurfDist_;
-    static scalar vdwMaxAcc_;
-    static scalar eleMaxAcc_;
-    static scalar lubMaxAcc_;
     static scalar tanLubrC_;
     static scalar tanLubrRelax_;
     static scalar charCellSize_;

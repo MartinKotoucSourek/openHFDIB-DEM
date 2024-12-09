@@ -139,7 +139,6 @@ rhoF_(transportProperties_.lookup("rho"))
                 readScalar(matIDic.lookup("nu")),
                 readScalar(matIDic.lookup("mu")),
                 readScalar(matIDic.lookup("adhN")),
-                // readScalar(matIDic.lookup("eps"))
                 eps
             )
         );
@@ -247,18 +246,6 @@ rhoF_(transportProperties_.lookup("rho"))
         if (dlvoDic.found("minSurfDist"))
         {
             dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
-        }
-        if (dlvoDic.found("vdwMaxAcc"))
-        {
-            dlvoInfo::vdwMaxAcc_ = readScalar(dlvoDic.lookup("vdwMaxAcc"));
-        }
-        if (dlvoDic.found("eleMaxAcc"))
-        {
-            dlvoInfo::eleMaxAcc_ = readScalar(dlvoDic.lookup("eleMaxAcc"));
-        }
-        if (dlvoDic.found("lubMaxAcc"))
-        {
-            dlvoInfo::lubMaxAcc_ = readScalar(dlvoDic.lookup("lubMaxAcc"));
         }
         if (dlvoDic.found("tanLubrC"))
         {
@@ -399,7 +386,7 @@ void openHFDIBDEM::initialize
 
     // initialize addModels
     addModels_.setSize(bodyNames_.size());
-    immersedBodies_.setSize(0);                                         //on the fly creation
+    immersedBodies_.setSize(0);
     refineF *= 0;
     recomputeM0_ = recomputeM0;
 
@@ -717,12 +704,10 @@ void openHFDIBDEM::writeBodiesInfo()
     label bodiesPerProc = ceil(listZize/Pstream::nProcs());
     InfoH << basic_Info << "Active IB listZize      : " << listZize<< endl;
     InfoH << basic_Info << "bodiesPerProc : " << bodiesPerProc<< endl;
-    // Pout << "Processor "<< Pstream::myProcNo() << endl;
 
     for(int assignProc = Pstream::myProcNo()*bodiesPerProc; assignProc < min((Pstream::myProcNo()+1)*bodiesPerProc,activeIB.size()); assignProc++)
     {
         const label bodyId(activeIB[assignProc]);
-        // Pout <<"Processor "<< Pstream::myProcNo() << " writes Body " << bodyId << endl;
         word path(curOutDir + "/body" + std::to_string(immersedBodies_[bodyId].getBodyId()) +".info");
         OFstream ofStream(path);
         IOobject outClass
@@ -746,9 +731,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
     scalar deltaTime(mesh_.time().deltaT().value());
     scalar pos(0.0);
     scalar step(stepDEM_);
-    // scalar timeStep(step*deltaTime);
+
     List<DynamicList<pointField>> bodiesPositionList(Pstream::nProcs());
-    // Infos <<bodiesPositionList.size() << endl;
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> syncOutForceKeyTable;
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> contactResolvedKeyTable;
     HashTable <label,label,Hash<label>> wallContactIBTable;
@@ -852,18 +836,16 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
                         cIb.getibContactClass().inContactWithStatic(true);
                         wallContactIB.append(bodyId);
                         wallContactIBTable.insert(bodyId,wallContactIB.size()-1);
-                        // cIb.getWallCntInfo().registerSubContactList(wallContactList);
                     }
                 }
             }
         }
-        // possibleWallContacts = wallContactIB.size();
+
         List<bool> wallContactResolvedList(wallContactIB.size(),false);
 
         if(wallContactIB.size() > 0)
         {
             label wallContactPerProc(ceil(double(wallContactIB.size())/Pstream::nProcs()));
-            // Info <<" wallContactPerProc : "<< wallContactPerProc << endl;
             if( wallContactIB.size() <= Pstream::nProcs())
             {
                 wallContactPerProc = 1;
@@ -936,8 +918,9 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         wallContactIB.clear();
         DynamicList<prtSubContactInfo*> contactList;
-        // check only pairs whose bounding boxes are intersected for the contact
+
         label vListSize(0);
+        // check only pairs whose bounding boxes are intersected for the contact
         for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
@@ -968,8 +951,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
                     mesh_,
                     prtcInfo
                 );
-
-                // prtcInfo.syncContactList();
 
                 prtcInfo.registerContactList(contactList);
             }
@@ -1003,7 +984,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                 if(detectPrtPrtContact(mesh_,cClass,tClass,*sCI))
                 {
-                    // resolvedPrtContacts++;
                     prtContactInfo& prtcInfo(getPrtcInfo(cPair));
 
                     bool resolved(solvePrtContact(mesh_, prtcInfo, *sCI, deltaTime*step));
@@ -1136,8 +1116,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
             dlvoPairsNew_.insert(cPair, dlvoInfo.getLastTangLubrForce());
 
-            // Info << "omega: " << immersedBodies_[cInd].getContactVars().omega_ << " axis; " << immersedBodies_[cInd].getContactVars().Axis_ << " cind: " << cInd << " dlvoForces.first(): " << dlvoForces.first().T << endl;
-
             immersedBodies_[cInd].updateDlvoForces
             (
                 dlvoForces.first()
@@ -1151,12 +1129,8 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         dlvoPairs_ = std::move(dlvoPairsNew_);
 
-        // reduce(resolvedPrtContacts,sumOp<label>());
-        // InfoH << basic_Info << " -- Possible Particle Contacts: " << possiblePrtContacts
-        //     << " Resolved Particle Contacts: " << resolvedPrtContacts
-        //     << " contactPerProc : " << ceil(possiblePrtContacts/Pstream::nProcs()) << endl;
         scalar maxCoNum = 0;
-        label  bodyId = 0;
+        label  bodyIdWCo = 0;
         forAll (immersedBodies_,ib)
         {
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
@@ -1164,18 +1138,16 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             if (maxCoNum < immersedBodies_[ib].getCoNum())
             {
                 maxCoNum = immersedBodies_[ib].getCoNum();
-                bodyId = ib;
+                bodyIdWCo = ib;
             }
         }
-        // InfoH << basic_Info << "Max CoNum = " << maxCoNum << " at body " << bodyId << endl;
+        InfoH << basic_Info << "Max CoNum = " << maxCoNum << " at body " << bodyIdWCo << endl;
 
         pos += step;
 
-        if (pos + step + SMALL >= 1)
+        if (pos + step + SMALL >= 1) {
             step = 1 - pos;
-//OS Time effitiency Testing
-        // demItegrationTime_ = DEMIntergrationRun.timeIncrement();
-//OS Time effitiency Testing
+        }
     }
 
     if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
@@ -1207,7 +1179,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    // Info << "Periodic body created for body " << bodyId << endl;
                 }
             }
             else
@@ -1223,7 +1194,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
                     vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
                     vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
-                    // Info << "Periodic body unclustered for body " << bodyId << endl;
                 }
             }
         }
