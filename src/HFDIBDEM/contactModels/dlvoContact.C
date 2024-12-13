@@ -93,8 +93,8 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     vector cDirNorm = centerDir/mag(centerDir);
 
-    scalar lower_limit = 1.0 * dlvoInfo::getCharCellSize();
-    scalar upper_limit = 5.0 * dlvoInfo::getCharCellSize();
+    scalar lower_limit = 0.2 * dlvoInfo::getCharCellSize();
+    scalar upper_limit = 1.5 * dlvoInfo::getCharCellSize();
 
     scalar limFunction = surfDist <= lower_limit ? 1 : surfDist >= upper_limit ? 0 : 0.5 * (1 + Foam::cos(3.14 * (surfDist - lower_limit) / (upper_limit - lower_limit)));
 
