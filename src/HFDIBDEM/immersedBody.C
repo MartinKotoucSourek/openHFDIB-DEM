@@ -648,6 +648,8 @@ void immersedBody::updateMovementComp
         T += FContact_.T;
         T += FDlvo_.T;
 
+        Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
+
         // update body angular velocity
         vector Omega(Axis*omega + deltaT * (inv(geomModel_->getI()) & T));
 

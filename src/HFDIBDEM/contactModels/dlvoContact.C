@@ -107,16 +107,19 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     vector cCntPVel = (-(cPlanarVec^cInfo.getcVars().Axis_)*cInfo.getcVars().omega_ + cInfo.getcVars().Vel_);
     vector tCntPVel = (-(tPlanarVec^cInfo.gettVars().Axis_)*cInfo.gettVars().omega_ + cInfo.gettVars().Vel_);
 
-    vector relativeTanVel = cCntPVel - tCntPVel;
+    vector relVel = cCntPVel - tCntPVel;
 
-    vector F_t_lubr = 6 * 3.14 * rhoF.value() * nuF.value() * pow((cRadius*tRadius/(cRadius + tRadius)), 2) * relativeTanVel / surfDist;
-    vector F_t_lubr_relaxed = cInfo.getLastTangLubrForce() + dlvoInfo::getTanLubrRelax() * (F_t_lubr - cInfo.getLastTangLubrForce());
-    cInfo.getLastTangLubrForce() = F_t_lubr_relaxed;
+    vector F_lubr = 6 * 3.14 * rhoF.value() * nuF.value() * pow((cRadius*tRadius/(cRadius + tRadius)), 2) * relVel / surfDist;
+    vector F_lubr_relaxed = cInfo.getLastTangLubrForce() + dlvoInfo::getTanLubrRelax() * (F_lubr - cInfo.getLastTangLubrForce());
+    cInfo.getLastTangLubrForce() = F_lubr_relaxed;
 
-    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_t_lubr_relaxed));
-    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_t_lubr_relaxed);
+    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_lubr_relaxed));
+    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_lubr_relaxed);
 
-    vector F_c = F_dlvo * cDirNorm;
+    Info << "F_dlvo: " << F_dlvo << " F_lubr_relaxed: " << F_lubr_relaxed << " F_lubr_relaxed & cDirNorm: " << (F_lubr_relaxed & cDirNorm) << endl;
+
+    // vector F_c = F_dlvo * cDirNorm;
+    vector F_c = (F_dlvo - (F_lubr_relaxed & cDirNorm)) * cDirNorm;
     vector F_t = - F_c;
 
     return {forces(F_c, T_c), forces(F_t, T_t)};
