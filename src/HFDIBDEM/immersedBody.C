@@ -583,7 +583,7 @@ void immersedBody::updateMovementComp
         F += FDlvo_.F;
         F += FG;
 
-        Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FG  : " << FG << endl;
+        InfoH << iB_Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FG  : " << FG << endl;
 
         if(!case3D)
         {
@@ -611,7 +611,7 @@ void immersedBody::updateMovementComp
             T += FContact_.T;
             T += FDlvo_.T;
 
-            Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
+            InfoH << iB_Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
 
             // update body angular acceleration
             alpha_ = inv(geomModel_->getI()) & T;
@@ -648,13 +648,15 @@ void immersedBody::updateMovementComp
         T += FContact_.T;
         T += FDlvo_.T;
 
-        Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
+        InfoH << iB_Info << "-- body "<< bodyId_ <<" Force FCoupling_.T  : " << FCoupling_.T << " FContact_.T  : " << FContact_.T << " FDlvo_.T  : " << FDlvo_.T << endl;
 
+        // update body angular acceleration
+        alpha_ = inv(geomModel_->getI()) & T;
         // update body angular velocity
-        vector Omega(Axis*omega + deltaT * (inv(geomModel_->getI()) & T));
+        vector Omega(Axis*omega + deltaT*alpha_);
 
         // split Omega into Axis_ and omega_
-        omega_ = mag(Omega);
+        omega_ = mag(Omega & Axis_);
 
         vector newAxis = Omega/(omega_+SMALL);
         if ((newAxis & Axis_) < 0) Axis_ *= (-1.0);;
@@ -802,6 +804,7 @@ void immersedBody::updateVectorField
         }
         else
         {
+            InfoH << "Axis_ " << Axis_ << endl;
             forAll (intLists, i)
             {
                 DynamicLabelList& intListI = intLists[i];
