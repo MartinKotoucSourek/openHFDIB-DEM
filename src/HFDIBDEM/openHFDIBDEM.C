@@ -219,6 +219,21 @@ rhoF_(transportProperties_.lookup("rho"))
     {
         dictionary dlvoDic = demDic.subDict("dlvo");
         dlvoInfo::active_ = true;
+        if (dlvoDic.found("useDLVO"))
+        {
+            dlvoInfo::useDLVO_ = readBool(dlvoDic.lookup("useDLVO"));
+        }
+        Info << (dlvoInfo::useDLVO_ ? "DLVO is active" : "DLVO is not active") << endl;
+        if (dlvoDic.found("useTangLubr"))
+        {
+            dlvoInfo::useTangLubr_ = readBool(dlvoDic.lookup("useTangLubr"));
+        }
+        Info << (dlvoInfo::useTangLubr_ ? "Tangential Lubrication is active" : "Tangential Lubrication is not active") << endl;
+        if (dlvoDic.found("useTransLubr"))
+        {
+            dlvoInfo::useTransLubr_ = readBool(dlvoDic.lookup("useTransLubr"));
+        }
+        Info << (dlvoInfo::useTransLubr_ ? "Translation Lubrication is active" : "Translation Lubrication is not active") << endl;
         if (dlvoDic.found("A"))
         {
             dlvoInfo::A_ = readScalar(dlvoDic.lookup("A"));

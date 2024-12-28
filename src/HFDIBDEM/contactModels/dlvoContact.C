@@ -89,7 +89,7 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
         F_elec = 0;
     }
 
-    scalar F_dlvo = F_VdW + F_elec;
+    scalar F_dlvo = dlvoInfo::useDLVO() ? (F_VdW + F_elec) : 0;
 
     vector cDirNorm = centerDir/mag(centerDir);
 
@@ -113,10 +113,13 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
     vector F_lubr_relaxed = cInfo.getLastTangLubrForce() + dlvoInfo::getTanLubrRelax() * (F_lubr - cInfo.getLastTangLubrForce());
     cInfo.getLastTangLubrForce() = F_lubr_relaxed;
 
-    vector T_c = limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_lubr_relaxed));
-    vector T_t = limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_lubr_relaxed);
+    vector T_c = dlvoInfo::useTangLubr() ? limFunction * dlvoInfo::getTanLubrC() * (cCntPointDir ^ (-F_lubr_relaxed)) : vector::zero;
+    vector T_t = dlvoInfo::useTangLubr() ? limFunction * dlvoInfo::getTanLubrC() * (tCntPointDir ^ F_lubr_relaxed) : vector::zero;
 
-    Info << "F_dlvo: " << F_dlvo << " F_lubr_relaxed: " << F_lubr_relaxed << " F_lubr_relaxed & cDirNorm: " << (F_lubr_relaxed & cDirNorm) << endl;
+    if (!dlvoInfo::useTransLubr())
+    {
+        F_lubr_relaxed = vector::zero;
+    }
 
     // vector F_c = F_dlvo * cDirNorm;
     vector F_c = (F_dlvo - (F_lubr_relaxed & cDirNorm)) * cDirNorm;

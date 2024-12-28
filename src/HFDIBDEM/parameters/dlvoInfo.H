@@ -58,6 +58,21 @@ class dlvoInfo
     };
     static bool active_;
 
+    static const bool& useDLVO()
+    {
+        return useDLVO_;
+    };
+
+    static const bool& useTangLubr()
+    {
+        return useTangLubr_;
+    };
+
+    static const bool& useTransLubr()
+    {
+        return useTransLubr_;
+    };
+
     static const scalar& getA()
     {
         return A_;
@@ -121,6 +136,9 @@ class dlvoInfo
         return factorZ;
     };
 
+    static bool useDLVO_;
+    static bool useTangLubr_;
+    static bool useTransLubr_;
     static scalar A_;
     static scalar eps0_;
     static scalar epsR_;

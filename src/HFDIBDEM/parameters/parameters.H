@@ -84,6 +84,9 @@ bool contactModelInfo::useMindlinRotationalModel_ = false;
 bool contactModelInfo::increasedDamping_ = false;
 
 bool   dlvoInfo::active_ = false;
+bool   dlvoInfo::useDLVO_ = true;
+bool   dlvoInfo::useTangLubr_ = true;
+bool   dlvoInfo::useTransLubr_ = true;
 scalar dlvoInfo::A_ = 1e-20;
 scalar dlvoInfo::eps0_ = 8.854e-12;
 scalar dlvoInfo::epsR_ = 50;
