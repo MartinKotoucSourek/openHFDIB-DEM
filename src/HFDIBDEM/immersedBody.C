@@ -804,7 +804,6 @@ void immersedBody::updateVectorField
         }
         else
         {
-            InfoH << "Axis_ " << Axis_ << endl;
             forAll (intLists, i)
             {
                 DynamicLabelList& intListI = intLists[i];

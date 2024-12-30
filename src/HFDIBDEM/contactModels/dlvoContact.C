@@ -78,7 +78,6 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     scalar surfDist = d - (cRadius + tRadius);
     surfDist = surfDist < dlvoInfo::getMinSurfDist() ? dlvoInfo::getMinSurfDist() : surfDist;
-    Info << "surfDist: " << surfDist << endl;
 
     scalar F_VdW = A*(cRadius*tRadius/(cRadius + tRadius))/(6*surfDist*surfDist);
     scalar F_elec = 0;
