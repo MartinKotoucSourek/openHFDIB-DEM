@@ -184,14 +184,14 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         {
             Info << "Rotation Model not recognized, setting to default mindlin1953" << endl;
             contactModelInfo::setRotationModel(1);
-        }    
+        }
     }
     else
     {
         Info << "Rotation Model not recognized, setting to default mindlin1953" << endl;
         contactModelInfo::setRotationModel(1);
     }
-    
+
 
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
 
@@ -550,7 +550,16 @@ void openHFDIBDEM::postUpdateBodies
         if (immersedBodies_[bodyId].getIsActive())
         {
             immersedBodies_[bodyId].clearIntpInfo();
-            immersedBodies_[bodyId].postPimpleUpdateImmersedBody(body,f);
+        }
+    }
+
+    updateBodiesCoupling(body,f);
+
+    forAll (immersedBodies_,bodyId)
+    {
+        if (immersedBodies_[bodyId].getIsActive())
+        {
+            immersedBodies_[bodyId].resetOldMovementVars();
         }
     }
 }
@@ -1197,11 +1206,12 @@ void openHFDIBDEM::updateFSCoupling
     volVectorField& f
 )
 {
+    updateBodiesCoupling(body, f);
     forAll (immersedBodies_,bodyId)
     {
         if (immersedBodies_[bodyId].getIsActive())
         {
-            immersedBodies_[bodyId].pimpleUpdate(body,f);
+            immersedBodies_[bodyId].pimpleMovementUpdate();
         }
     }
 }
@@ -1379,5 +1389,28 @@ void openHFDIBDEM::writeFirtsTimeBodiesInfo()
 void openHFDIBDEM::setSolverInfo()
 {
     solverInfo::setOnlyDEM(true);
+}
+//---------------------------------------------------------------------------//
+void openHFDIBDEM::updateBodiesCoupling
+(
+    volScalarField& body,
+    volVectorField& f
+)
+{
+    forAll (immersedBodies_,bodyId)
+    {
+        if (immersedBodies_[bodyId].getIsActive())
+        {
+            immersedBodies_[bodyId].updateCoupling(body,f);
+        }
+    }
+
+    forAll (immersedBodies_,bodyId)
+    {
+        if (immersedBodies_[bodyId].getIsActive())
+        {
+            immersedBodies_[bodyId].syncCouplingForces();
+        }
+    }
 }
 //---------------------------------------------------------------------------//

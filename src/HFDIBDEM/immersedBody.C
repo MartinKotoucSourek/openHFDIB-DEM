@@ -47,7 +47,7 @@ Contributors
 
 #include "fvcSmooth.H"
 #include "fvMeshSubset.H"
-#include "solverInfo.H" 
+#include "solverInfo.H"
 
 #define ORDER 2
 
@@ -469,20 +469,6 @@ void immersedBody::constructRefineField
     }
 }
 //---------------------------------------------------------------------------//
-void immersedBody::postPimpleUpdateImmersedBody
-(
-    volScalarField& body,
-    volVectorField& f
-)
-{
-    // update Vel_, Axis_ and omega_
-    updateCoupling(body,f);
-
-    Vel_ = VelOld_;
-    Axis_ = AxisOld_;
-    omega_ = omegaOld_;
-}
-//---------------------------------------------------------------------------//
 void immersedBody::updateCoupling
 (
     volScalarField& body,
@@ -491,6 +477,7 @@ void immersedBody::updateCoupling
 {
     vector FV(vector::zero);
     vector TA(vector::zero);
+    FCoupling_ = forces(FV, TA);
 
     List<DynamicLabelList> intLists;
     List<DynamicLabelList> surfLists;
@@ -530,12 +517,22 @@ void immersedBody::updateCoupling
         }
     }
 
-  reduce(FV, sumOp<vector>());
-  reduce(TA, sumOp<vector>());
-  FV *= rhoF_.value();
-  TA *= rhoF_.value();
+    FCoupling_ = forces(FV, TA);
+}
+//---------------------------------------------------------------------------//
+void immersedBody::syncCouplingForces
+(
+)
+{
+    vector FV(FCoupling_.F);
+    vector TA(FCoupling_.T);
 
-  FCoupling_ = forces(FV, TA);
+    reduce(FV, sumOp<vector>());
+    reduce(TA, sumOp<vector>());
+    FV *= rhoF_.value();
+    TA *= rhoF_.value();
+
+    FCoupling_ = forces(FV, TA);
 }
 //---------------------------------------------------------------------------//
 // update movement variables of the body
@@ -569,7 +566,7 @@ void immersedBody::updateMovementComp
 
         const uniformDimensionedVectorField& g =
             mesh_.lookupObject<uniformDimensionedVectorField>("g");
-        
+
         vector FG(vector::zero);
         if(!solverInfo::getOnlyDEM())
             FG = geomModel_->getM0()*(1.0-rhoF_.value()
@@ -1055,13 +1052,8 @@ void immersedBody::initSyncWithFlow(const volVectorField& U)
     printStats();
 }
 //---------------------------------------------------------------------------//
-void immersedBody::pimpleUpdate
-(
-    volScalarField& body,
-    volVectorField& f
-)
+void immersedBody::pimpleMovementUpdate()
 {
-    updateCoupling(body, f);
     updateMovement(VelOld_, AxisOld_, omegaOld_);
 }
 //---------------------------------------------------------------------------//

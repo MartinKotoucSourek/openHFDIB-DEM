@@ -149,13 +149,6 @@ namespace Foam
             volVectorField& f
         );
 
-        // update fluid-solid coupling
-        void updateCoupling
-        (
-            volScalarField& body,
-            volVectorField& f
-        );
-
         // auxiliary octree variables
         Field<label> octreeField_;
         label cellToStartInCreateIB_;
@@ -198,14 +191,26 @@ namespace Foam
 
         // Public methods ----------------------------------------------
 
+        // update fluid-solid coupling
+        void updateCoupling
+        (
+            volScalarField& body,
+            volVectorField& f
+        );
+
+        // update fluid-solid coupling
+        void syncCouplingForces
+        (
+        );
+
         // move immersed body
         void moveImmersedBody
         (
             scalar deltaT = -1.0
         );
-        
+
         void printBodyInfo();
-        
+
         //update body movement based on acting forces
         void updateMovement
         (
@@ -360,12 +365,6 @@ namespace Foam
             ibContactClass_->setWallContact(inContact);
         }
 
-        void postPimpleUpdateImmersedBody
-        (
-            volScalarField& body,
-            volVectorField& f
-        );
-
         // compute the mean and maximal body courant number (based on
         // the body linear velocity)
         void computeBodyCoNumber();
@@ -401,11 +400,7 @@ namespace Foam
 
         void initSyncWithFlow(const volVectorField& U);
 
-        void pimpleUpdate
-        (
-            volScalarField& body,
-            volVectorField& f
-        );
+        void pimpleMovementUpdate();
 
         const bool& getSDBasedLambda() const
         {
@@ -490,6 +485,13 @@ namespace Foam
             VelOld_   = Vel_;
             AxisOld_  = Axis_;
             omegaOld_ = omega_;
+        }
+
+        void resetOldMovementVars()
+        {
+            Vel_   = VelOld_;
+            Axis_  = AxisOld_;
+            omega_ = omegaOld_;
         }
 
         void writeIbInfo()
