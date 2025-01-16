@@ -54,8 +54,8 @@ void dlvoClass::setBBoxes(List<std::shared_ptr<boundBox>> bBox)
 
     for (int i = 0; i < bBox.size(); i++)
     {
-        bBox_[i]->min() = bBox[i]->min() - cutOff_;
-        bBox_[i]->max() = bBox[i]->max() + cutOff_;
+        bBox_[i]->min() = bBox[i]->min() - cutOff_ / 2;
+        bBox_[i]->max() = bBox[i]->max() + cutOff_ / 2;
     }
 }
 
