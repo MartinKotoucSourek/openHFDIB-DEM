@@ -218,7 +218,6 @@ rhoF_(transportProperties_.lookup("rho"))
     if(demDic.found("dlvo"))
     {
         dictionary dlvoDic = demDic.subDict("dlvo");
-        dlvoInfo::active_ = true;
         if (dlvoDic.found("useDLVO"))
         {
             dlvoInfo::useDLVO_ = readBool(dlvoDic.lookup("useDLVO"));
@@ -273,6 +272,8 @@ rhoF_(transportProperties_.lookup("rho"))
 
         dlvoInfo::charCellSize_ = charCellSize;
         dlvoInfo::computeFactorZ();
+
+        dlvoInfo::active_ = dlvoInfo::useDLVO_ || dlvoInfo::useTangLubr_ || dlvoInfo::useTransLubr_;
     }
 
     dictionary patchDic = demDic.subDict("collisionPatches");
@@ -748,6 +749,55 @@ void openHFDIBDEM::writeBodiesInfo()
         outDict.writeData(ofStream);
     }
 
+    Info << "DLVO stats start" << endl;
+
+    std::map<label, Tuple2<label, scalar>> dlvoStats;
+
+    for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+    {
+        const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+        label cInd(cPair.first());
+        label tInd(cPair.second());
+
+        immersedBody& cIb(immersedBodies_[cInd]);
+        immersedBody& tIb(immersedBodies_[tInd]);
+
+        scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
+
+        if (dlvoStats.count(cInd) == 0)
+        {
+            dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+        }
+        else
+        {
+            dlvoStats[cInd].first()++;
+            if (distance < dlvoStats[cInd].second())
+            {
+                dlvoStats[cInd].second() = distance;
+            }
+        }
+
+        if (dlvoStats.count(tInd) == 0)
+        {
+            dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+        }
+        else
+        {
+            dlvoStats[tInd].first()++;
+            if (distance < dlvoStats[tInd].second())
+            {
+                dlvoStats[tInd].second() = distance;
+            }
+        }
+    }
+
+    for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
+    {
+        Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
+    }
+
+    Info << "DLVO stats end" << endl;
+
 }
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
@@ -1120,49 +1170,86 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             }
         }
 
-        HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairsNew_;
-
-        for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+        if (dlvoInfo::isActive())
         {
-            const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
-            label cInd(cPair.first());
-            label tInd(cPair.second());
+            HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairsNew_;
+            std::vector<std::pair<label, label>> dlvoContacs(vDlvoList_.begin(), vDlvoList_.end());
+            List<DynamicList<vector>> dlvoTangForceList(Pstream::nProcs());
+            List<List<vector>> bodyDlvoForceList(Pstream::nProcs(), List<vector>(immersedBodies_.size(), vector::zero));
+            List<List<vector>> bodyDlvoTorqueList(Pstream::nProcs(), List<vector>(immersedBodies_.size(), vector::zero));
 
-            dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars());
-
-            if (dlvoPairs_.found(cPair))
+            label contactPerProc(ceil(double(dlvoContacs.size())/Pstream::nProcs()));
+            if(static_cast<int>(dlvoContacs.size()) <= Pstream::nProcs())
             {
-                dlvoInfo.getLastTangLubrForce() = dlvoPairs_[cPair];
+                contactPerProc = 1;
             }
-            Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
-            dlvoPairsNew_.insert(cPair, dlvoInfo.getLastTangLubrForce());
 
-            immersedBodies_[cInd].updateDlvoForces
-            (
-                dlvoForces.first()
-            );
+            if(dlvoContacs.size() > 0 )
+            {
+                auto it = Pstream::myProcNo()*contactPerProc < static_cast<int>(dlvoContacs.size()) ? dlvoContacs.begin() + Pstream::myProcNo()*contactPerProc : dlvoContacs.end();
+                for(; it != dlvoContacs.end() && it < dlvoContacs.begin() + min((Pstream::myProcNo()+1)*contactPerProc, static_cast<int>(dlvoContacs.size())); it++)
+                {
+                    const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+                    label cInd(cPair.first());
+                    label tInd(cPair.second());
 
-            immersedBodies_[tInd].updateDlvoForces
-            (
-                dlvoForces.second()
-            );
+                    dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars());
+
+                    if (dlvoInfo::useTangLubr() && dlvoPairs_.found(cPair))
+                    {
+                        dlvoInfo.getLastTangLubrForce() = dlvoPairs_[cPair];
+                    }
+                    Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
+
+                    dlvoTangForceList[Pstream::myProcNo()].append(dlvoInfo.getLastTangLubrForce());
+                    bodyDlvoForceList[Pstream::myProcNo()][cInd] += dlvoForces.first().F;
+                    bodyDlvoTorqueList[Pstream::myProcNo()][cInd] += dlvoForces.first().T;
+                    bodyDlvoForceList[Pstream::myProcNo()][tInd] += dlvoForces.second().F;
+                    bodyDlvoTorqueList[Pstream::myProcNo()][tInd] += dlvoForces.second().T;
+                }
+            }
+
+            Pstream::gatherList(dlvoTangForceList);
+            Pstream::scatterList(dlvoTangForceList);
+            Pstream::gatherList(bodyDlvoForceList);
+            Pstream::scatterList(bodyDlvoForceList);
+            Pstream::gatherList(bodyDlvoTorqueList);
+            Pstream::scatterList(bodyDlvoTorqueList);
+
+            label cntNum = 0;
+            for (int i = 0; i < Pstream::nProcs(); ++i)
+            {
+                if (dlvoInfo::useTangLubr())
+                {
+                    for (auto const& tangForce : dlvoTangForceList[i])
+                    {
+                        const Tuple2<label, label> cPair = Tuple2<label, label>(dlvoContacs[cntNum].first, dlvoContacs[cntNum].second);
+                        dlvoPairsNew_.insert(cPair, tangForce);
+                        cntNum++;
+                    }
+                }
+
+                for (int j = 0; j < immersedBodies_.size(); ++j)
+                {
+                    immersedBodies_[j].updateDlvoForces
+                    (
+                        forces(bodyDlvoForceList[i][j], bodyDlvoTorqueList[i][j])
+                    );
+                }
+            }
+
+            Info << "dlvo force immersed body 0: " << immersedBodies_[0].getDlvoForces().F << endl;
+
+            if (dlvoInfo::useTangLubr())
+            {
+                dlvoPairs_ = std::move(dlvoPairsNew_);
+            }
         }
 
-        dlvoPairs_ = std::move(dlvoPairsNew_);
-
-        scalar maxCoNum = 0;
-        label  bodyIdWCo = 0;
         forAll (immersedBodies_,ib)
         {
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
-            immersedBodies_[ib].computeBodyCoNumber();
-            if (maxCoNum < immersedBodies_[ib].getCoNum())
-            {
-                maxCoNum = immersedBodies_[ib].getCoNum();
-                bodyIdWCo = ib;
-            }
         }
-        InfoH << basic_Info << "Max CoNum = " << maxCoNum << " at body " << bodyIdWCo << endl;
 
         pos += step;
 
@@ -1219,6 +1306,55 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             }
         }
     }
+
+    Info << "DLVO stats start" << endl;
+
+    std::map<label, Tuple2<label, scalar>> dlvoStats;
+
+    for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+    {
+        const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+        label cInd(cPair.first());
+        label tInd(cPair.second());
+
+        immersedBody& cIb(immersedBodies_[cInd]);
+        immersedBody& tIb(immersedBodies_[tInd]);
+
+        scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
+
+        if (dlvoStats.count(cInd) == 0)
+        {
+            dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+        }
+        else
+        {
+            dlvoStats[cInd].first()++;
+            if (distance < dlvoStats[cInd].second())
+            {
+                dlvoStats[cInd].second() = distance;
+            }
+        }
+
+        if (dlvoStats.count(tInd) == 0)
+        {
+            dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+        }
+        else
+        {
+            dlvoStats[tInd].first()++;
+            if (distance < dlvoStats[tInd].second())
+            {
+                dlvoStats[tInd].second() = distance;
+            }
+        }
+    }
+
+    for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
+    {
+        Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
+    }
+
+    Info << "DLVO stats end" << endl;
 }
 //---------------------------------------------------------------------------//
 prtContactInfo& openHFDIBDEM::getPrtcInfo(Tuple2<label,label> cPair)
