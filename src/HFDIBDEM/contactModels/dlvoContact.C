@@ -70,8 +70,37 @@ Tuple2<forces,forces> solveDlvoContact_Sphere
 
     scalar cRadius = cInfo.getcClass().getGeomModel().getDC() / 2;
     scalar tRadius = cInfo.gettClass().getGeomModel().getDC() / 2;
-    vector cCenter = cInfo.getcClass().getGeomModel().getCoM();
-    vector tCenter = cInfo.gettClass().getGeomModel().getCoM();
+    // vector cCenter = cInfo.getcClass().getGeomModel().getCoM();
+    // vector tCenter = cInfo.gettClass().getGeomModel().getCoM();
+
+    auto cBBoxes = cInfo.getcBboxes();
+    auto tBBoxes = cInfo.gettBboxes();
+
+    std::vector<vector> cCenters;
+    for (auto cBBox : cBBoxes)
+    {
+        cCenters.push_back((cBBox->min() + cBBox->max()) / 2);
+    }
+    std::vector<vector> tCenters;
+    for (auto tBBox : tBBoxes)
+    {
+        tCenters.push_back((tBBox->min() + tBBox->max()) / 2);
+    }
+
+    vector cCenter = cCenters[0];
+    vector tCenter = tCenters[0];
+    for (auto cC : cCenters)
+    {
+        for (auto tC : tCenters)
+        {
+            scalar cDist = mag(cC - tC);
+            if (cDist < mag(cCenter - tCenter))
+            {
+                cCenter = cC;
+                tCenter = tC;
+            }
+        }
+    }
 
     vector centerDir = tCenter - cCenter;
     scalar d = mag(centerDir);
@@ -222,24 +251,26 @@ Tuple2<forces,forces> solveDlvoContact_Cluster
                 cIbClassI,
                 tIbClassI,
                 cInfo.getcVars(),
-                cInfo.gettVars()
+                cInfo.gettVars(),
+                cInfo.getcBboxes(),
+                cInfo.gettBboxes()
             );
 
             Tuple2<forces,forces> tmpF = solveDlvoContact(tmpDlvoInfoI, nuF, rhoF);
-
+            return tmpF;
             // mass average of forces
-            try
-            {
-                tmpF.first().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
-                tmpF.second().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
-            }
-            catch(const std::exception& e)
-            {
-                Info << "DLVO error: " << e.what() << endl;
-            }
+            // try
+            // {
+            //     tmpF.first().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+            //     tmpF.second().F *= (cgModel->getM()/cMass) * (tgModel->getM()/tMass);
+            // }
+            // catch(const std::exception& e)
+            // {
+            //     Info << "DLVO error: " << e.what() << endl;
+            // }
 
-            returnF.first() += tmpF.first();
-            returnF.second() += tmpF.second();
+            // returnF.first() += tmpF.first();
+            // returnF.second() += tmpF.second();
         }
     }
 

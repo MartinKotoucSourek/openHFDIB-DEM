@@ -67,6 +67,9 @@ class dlvoContactInfo
     ibContactVars cIbContactVars_;
     ibContactVars tIbContactVars_;
 
+    List<std::shared_ptr<boundBox>> cBboxes_;
+    List<std::shared_ptr<boundBox>> tBboxes_;
+
     Tuple2<label,label> contactPair_;
 
     vector lastTangLubrForce_;
@@ -79,7 +82,9 @@ class dlvoContactInfo
         ibContactClass& cClass,
         ibContactClass& tClass,
         ibContactVars& cVars,
-        ibContactVars& tVars
+        ibContactVars& tVars,
+        List<std::shared_ptr<boundBox>> cBboxes,
+        List<std::shared_ptr<boundBox>> tBboxes
     );
 
     // Destructors -------------------------------------------------
@@ -109,6 +114,16 @@ class dlvoContactInfo
     ibContactVars& gettVars()
     {
         return tIbContactVars_;
+    }
+
+    List<std::shared_ptr<boundBox>>& getcBboxes()
+    {
+        return cBboxes_;
+    }
+
+    List<std::shared_ptr<boundBox>>& gettBboxes()
+    {
+        return tBboxes_;
     }
 
     vector& getLastTangLubrForce()

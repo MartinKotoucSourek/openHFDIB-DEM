@@ -31,6 +31,10 @@ Contributors
 \*---------------------------------------------------------------------------*/
 #include "dlvoClass.H"
 
+#include "cyclicPlaneInfo.H"
+
+#include <vector>
+
 using namespace Foam;
 
 //---------------------------------------------------------------------------//
@@ -43,19 +47,65 @@ dlvoClass::~dlvoClass()
 
 void dlvoClass::setBBoxes(List<std::shared_ptr<boundBox>> bBox)
 {
-    if (bBox.size() != bBox_.size())
+    HashTable<List<vector>,string,Hash<string>> const& cyclicPlaneInfoList = cyclicPlaneInfo::getCyclicPlaneInfo();
+    std::vector<vector> cyclicVectors;
+    for (auto patch : cyclicPlaneInfoList.toc())
+    {
+        auto cyclicVector = cyclicPlaneInfo::getCyclicTransVec(patch);
+        cyclicVectors.push_back(cyclicVector);
+    }
+
+    auto tmpBBoxes = bBox;
+    for (auto bboxI : tmpBBoxes)
+    {
+        for (auto cyclicVector : cyclicVectors)
+        {
+            auto newBoundBox = std::make_shared<boundBox>();
+            newBoundBox->min() = bboxI->min() - cyclicVector;
+            newBoundBox->max() = bboxI->max() - cyclicVector;
+
+            auto iter = std::find_if(bBox.begin(), bBox.end(), [this, newBoundBox](std::shared_ptr<boundBox> cBBox) {
+                if ((cBBox->min() > newBoundBox->min() && cBBox->min() < newBoundBox->max()) ||
+                    (cBBox->max() > newBoundBox->min() && cBBox->max() < newBoundBox->max()))
+                {
+                    return true;
+                }
+
+                if (mag(cBBox->min() - newBoundBox->min()) < cutOff_[0] ||
+                    mag(cBBox->min() - newBoundBox->max()) < cutOff_[0])
+                {
+                    return true;
+                }
+
+                if (mag(cBBox->max() - newBoundBox->min()) < cutOff_[0] ||
+                    mag(cBBox->max() - newBoundBox->max()) < cutOff_[0])
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (iter == bBox.end())
+            {
+                tmpBBoxes.append(newBoundBox);
+            }
+        }
+    }
+
+    if (tmpBBoxes.size() != bBox_.size())
     {
         bBox_.clear();
-        for (int i = 0; i < bBox.size(); i++)
+        for (int i = 0; i < tmpBBoxes.size(); i++)
         {
             bBox_.append(std::make_shared<boundBox>());
         }
     }
 
-    for (int i = 0; i < bBox.size(); i++)
+    for (int i = 0; i < tmpBBoxes.size(); i++)
     {
-        bBox_[i]->min() = bBox[i]->min() - cutOff_ / 2;
-        bBox_[i]->max() = bBox[i]->max() + cutOff_ / 2;
+        bBox_[i]->min() = tmpBBoxes[i]->min() - cutOff_ / 2;
+        bBox_[i]->max() = tmpBBoxes[i]->max() + cutOff_ / 2;
     }
 }
 

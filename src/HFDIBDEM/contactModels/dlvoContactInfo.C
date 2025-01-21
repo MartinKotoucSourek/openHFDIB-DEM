@@ -39,13 +39,17 @@ dlvoContactInfo::dlvoContactInfo
     ibContactClass& cClass,
     ibContactClass& tClass,
     ibContactVars& cVars,
-    ibContactVars& tVars
+    ibContactVars& tVars,
+    List<std::shared_ptr<boundBox>> cBboxes,
+    List<std::shared_ptr<boundBox>> tBboxes
 )
 :
 cIbContactClass_(cClass),
 tIbContactClass_(tClass),
 cIbContactVars_(cVars),
 tIbContactVars_(tVars),
+cBboxes_(cBboxes),
+tBboxes_(tBboxes),
 lastTangLubrForce_(vector::zero)
 {
     contactPair_.first() = cIbContactVars_.bodyId_;

@@ -1193,7 +1193,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
                     label cInd(cPair.first());
                     label tInd(cPair.second());
 
-                    dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars());
+                    dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars(), immersedBodies_[cInd].getDlvo()->getBBoxes(), immersedBodies_[tInd].getDlvo()->getBBoxes());
 
                     if (dlvoInfo::useTangLubr() && dlvoPairs_.found(cPair))
                     {
