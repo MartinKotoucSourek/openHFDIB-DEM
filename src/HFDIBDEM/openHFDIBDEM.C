@@ -184,9 +184,14 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         {
             Info << "Rotation Model not recognized, setting to default mindlin1953" << endl;
             contactModelInfo::setRotationModel(1);
-        }
+        }    
     }
-
+    else
+    {
+        Info << "Rotation Model not recognized, setting to default mindlin1953" << endl;
+        contactModelInfo::setRotationModel(1);
+    }
+    
 
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
 
@@ -472,12 +477,6 @@ void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
     reduce(particleMasses,sumOp<List<scalar>>());
     reduce(particleCells,sumOp<List<label>>());
     reduce(particleInertiaTensors,sumOp<List<symmTensor>>());
-
-    Info << "mass list size " << particleMasses.size() << endl;
-    for (auto& m : particleMasses)
-    {
-        Info << "mass " << m << endl;
-    }
 
     label bodyIndex(0);
     forAll (immersedBodies_,bodyId)
