@@ -50,9 +50,9 @@ void clusterBody::createImmersedBody
             cellPoints
         );
 
-        Info << "Periodic body created" << " mass: " << gModel->getM() << endl;
-        Info << "Periodic body created" << " bbox: " << gModel->getBounds().min() << " " << gModel->getBounds().max() << endl;
-        Info << "Periodic body created" << " intList: " << gModel->getInternalCellList()[Pstream::myProcNo()].size() << endl;
+        // Info << "Periodic body created" << " mass: " << gModel->getM() << endl;
+        // Info << "Periodic body created" << " bbox: " << gModel->getBounds().min() << " " << gModel->getBounds().max() << endl;
+        // Info << "Periodic body created" << " intList: " << gModel->getInternalCellList()[Pstream::myProcNo()].size() << endl;
     }
 }
 //---------------------------------------------------------------------------//
@@ -110,7 +110,7 @@ void clusterBody::calculateGeometricalPropertiesParallel
     {
         gModel->calculateGeometricalPropertiesParallel(body);
 
-        Info << "Periodic body calculated" << " mass: " << gModel->getM() << endl;
+        // Info << "Periodic body calculated" << " mass: " << gModel->getM() << endl;
     }
 }
 //---------------------------------------------------------------------------//

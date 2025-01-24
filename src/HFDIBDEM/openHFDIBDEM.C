@@ -545,11 +545,11 @@ void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
     reduce(particleCells,sumOp<List<label>>());
     reduce(particleInertiaTensors,sumOp<List<symmTensor>>());
 
-    Info << "mass list size " << particleMasses.size() << endl;
-    for (auto& m : particleMasses)
-    {
-        Info << "mass " << m << endl;
-    }
+    // Info << "mass list size " << particleMasses.size() << endl;
+    // for (auto& m : particleMasses)
+    // {
+    //     Info << "mass " << m << endl;
+    // }
 
     label bodyIndex(0);
     forAll (immersedBodies_,bodyId)
@@ -1238,7 +1238,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
                 }
             }
 
-            Info << "dlvo force immersed body 0: " << immersedBodies_[0].getDlvoForces().F << endl;
+            // Info << "dlvo force immersed body 0: " << immersedBodies_[0].getDlvoForces().F << endl;
 
             if (dlvoInfo::useTangLubr())
             {
@@ -1307,54 +1307,54 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         }
     }
 
-    Info << "DLVO stats start" << endl;
+    // Info << "DLVO stats start" << endl;
 
-    std::map<label, Tuple2<label, scalar>> dlvoStats;
+    // std::map<label, Tuple2<label, scalar>> dlvoStats;
 
-    for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
-    {
-        const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
-        label cInd(cPair.first());
-        label tInd(cPair.second());
+    // for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+    // {
+    //     const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+    //     label cInd(cPair.first());
+    //     label tInd(cPair.second());
 
-        immersedBody& cIb(immersedBodies_[cInd]);
-        immersedBody& tIb(immersedBodies_[tInd]);
+    //     immersedBody& cIb(immersedBodies_[cInd]);
+    //     immersedBody& tIb(immersedBodies_[tInd]);
 
-        scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
+    //     scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
 
-        if (dlvoStats.count(cInd) == 0)
-        {
-            dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
-        }
-        else
-        {
-            dlvoStats[cInd].first()++;
-            if (distance < dlvoStats[cInd].second())
-            {
-                dlvoStats[cInd].second() = distance;
-            }
-        }
+    //     if (dlvoStats.count(cInd) == 0)
+    //     {
+    //         dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+    //     }
+    //     else
+    //     {
+    //         dlvoStats[cInd].first()++;
+    //         if (distance < dlvoStats[cInd].second())
+    //         {
+    //             dlvoStats[cInd].second() = distance;
+    //         }
+    //     }
 
-        if (dlvoStats.count(tInd) == 0)
-        {
-            dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
-        }
-        else
-        {
-            dlvoStats[tInd].first()++;
-            if (distance < dlvoStats[tInd].second())
-            {
-                dlvoStats[tInd].second() = distance;
-            }
-        }
-    }
+    //     if (dlvoStats.count(tInd) == 0)
+    //     {
+    //         dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+    //     }
+    //     else
+    //     {
+    //         dlvoStats[tInd].first()++;
+    //         if (distance < dlvoStats[tInd].second())
+    //         {
+    //             dlvoStats[tInd].second() = distance;
+    //         }
+    //     }
+    // }
 
-    for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
-    {
-        Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
-    }
+    // for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
+    // {
+    //     Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
+    // }
 
-    Info << "DLVO stats end" << endl;
+    // Info << "DLVO stats end" << endl;
 }
 //---------------------------------------------------------------------------//
 prtContactInfo& openHFDIBDEM::getPrtcInfo(Tuple2<label,label> cPair)
