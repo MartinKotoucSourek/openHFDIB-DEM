@@ -749,55 +749,65 @@ void openHFDIBDEM::writeBodiesInfo()
         outDict.writeData(ofStream);
     }
 
-    Info << "DLVO stats start" << endl;
-
-    std::map<label, Tuple2<label, scalar>> dlvoStats;
-
-    for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+    if (dlvoInfo::useDLVO_)
     {
-        const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
-        label cInd(cPair.first());
-        label tInd(cPair.second());
+        std::map<label, Tuple2<label, scalar>> dlvoStats;
 
-        immersedBody& cIb(immersedBodies_[cInd]);
-        immersedBody& tIb(immersedBodies_[tInd]);
-
-        scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
-
-        if (dlvoStats.count(cInd) == 0)
+        forAll (immersedBodies_,cI)
         {
-            dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
-        }
-        else
-        {
-            dlvoStats[cInd].first()++;
-            if (distance < dlvoStats[cInd].second())
+            forAll (immersedBodies_,tI)
             {
-                dlvoStats[cInd].second() = distance;
+                if (cI == tI)
+                {
+                    continue;
+                }
+
+                // const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+                label cInd(cI);
+                label tInd(tI);
+
+                immersedBody& cIb(immersedBodies_[cInd]);
+                immersedBody& tIb(immersedBodies_[tInd]);
+
+                scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM()) - cIb.getGeomModel().getDC() / 2 - tIb.getGeomModel().getDC() / 2;
+
+                if (dlvoStats.count(cInd) == 0)
+                {
+                    dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+                }
+                else
+                {
+                    dlvoStats[cInd].first()++;
+                    if (distance < dlvoStats[cInd].second())
+                    {
+                        dlvoStats[cInd].second() = distance;
+                    }
+                }
+
+                if (dlvoStats.count(tInd) == 0)
+                {
+                    dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+                }
+                else
+                {
+                    dlvoStats[tInd].first()++;
+                    if (distance < dlvoStats[tInd].second())
+                    {
+                        dlvoStats[tInd].second() = distance;
+                    }
+                }
             }
         }
 
-        if (dlvoStats.count(tInd) == 0)
+        Info << "DLVO stats start" << endl;
+
+        for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
         {
-            dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+            Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
         }
-        else
-        {
-            dlvoStats[tInd].first()++;
-            if (distance < dlvoStats[tInd].second())
-            {
-                dlvoStats[tInd].second() = distance;
-            }
-        }
+
+        Info << "DLVO stats end" << endl;
     }
-
-    for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
-    {
-        Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
-    }
-
-    Info << "DLVO stats end" << endl;
-
 }
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
