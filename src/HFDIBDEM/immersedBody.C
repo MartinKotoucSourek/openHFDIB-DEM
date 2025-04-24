@@ -583,6 +583,7 @@ void immersedBody::updateMovementComp
         F += FDlvo_.F;
         F += FG;
 
+        InfoH << iB_Info << "-- body "<< bodyId_ <<" CoM  : " << geomModel_->getCoM() << endl;
         InfoH << iB_Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FG  : " << FG << endl;
 
         if(!case3D)
@@ -1053,7 +1054,7 @@ void immersedBody::pimpleMovementUpdate()
 //---------------------------------------------------------------------------//
 void immersedBody::checkIfInDomain(volScalarField& body)
 {
-    if(geomModel_->getM0() < SMALL)
+    if(geomModel_->getM0() < VSMALL)
     {
         switchActiveOff(body);
         geomModel_->resetBody(body);
