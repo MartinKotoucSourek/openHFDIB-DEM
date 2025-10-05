@@ -130,6 +130,9 @@ namespace Foam
         // forces acting on the particle due to the dlvo theory
         forces FDlvo_;
 
+        // forces acting on the particle due to the Brownian motion
+        forces FBrownian_;
+
         // maximal body Courant number based on its linear velocity
         scalar CoNum_;
 
@@ -378,6 +381,15 @@ namespace Foam
         forces& getDlvoForces()
         {
             return FDlvo_;
+        }
+
+        // set brownian forces
+        void setBrownianForces
+        (
+            const forces& F
+        )
+        {
+            FBrownian_ = F;
         }
 
         void setWallContact(bool inContact)

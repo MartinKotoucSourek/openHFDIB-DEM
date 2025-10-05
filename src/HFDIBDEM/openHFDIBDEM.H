@@ -69,6 +69,9 @@ Contributors
 #include "vCntcList.H"
 #include "vDlvoList.H"
 
+#include "brownianForce.H"
+#include <optional>
+
 namespace Foam
 {
 
@@ -133,6 +136,8 @@ namespace Foam
     label minPimpleLoops_ = 0;
     scalar theta_ = 1.0; // relaxation factor for the fluid-solid coupling
     HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairs_;
+
+    std::shared_ptr<brownianForce> brownianForce_;
 
     public:
 

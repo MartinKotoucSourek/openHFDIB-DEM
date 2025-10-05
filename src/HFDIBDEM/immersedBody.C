@@ -581,10 +581,11 @@ void immersedBody::updateMovementComp
         vector F(FCoupling_.F);
         F += FContact_.F;
         F += FDlvo_.F;
+        F += FBrownian_.F;
         F += FG;
 
         InfoH << iB_Info << "-- body "<< bodyId_ <<" CoM  : " << geomModel_->getCoM() << endl;
-        InfoH << iB_Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FG  : " << FG << endl;
+        InfoH << iB_Info << "-- body "<< bodyId_ <<" Force Coupling_.F  : " << FCoupling_.F << " FContact_.F  : " << FContact_.F << " FDlvo_.F  : " << FDlvo_.F << " FBrownian_.F  : " << FBrownian_.F  << " FG  : " << FG << endl;
 
         if(!case3D)
         {

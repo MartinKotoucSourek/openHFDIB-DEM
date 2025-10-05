@@ -276,6 +276,19 @@ rhoF_(transportProperties_.lookup("rho"))
         dlvoInfo::active_ = dlvoInfo::useDLVO_ || dlvoInfo::useTangLubr_ || dlvoInfo::useTransLubr_;
     }
 
+    if (demDic.found("brownian"))
+    {
+        Info << "Brownian force is active" << endl;
+
+        dictionary brownianDic = demDic.subDict("brownian");
+        scalar lambda = readScalar(brownianDic.lookup("lambda"));
+        scalar temperature = readScalar(brownianDic.lookup("T"));
+        scalar muc = rhoF_.value() * nuF_.value();
+        scalar stability = readScalar(brownianDic.lookup("stability"));
+
+        brownianForce_ = std::make_shared<brownianForce>(lambda, temperature, muc, rhoF_.value(), stability);
+    }
+
     dictionary patchDic = demDic.subDict("collisionPatches");
     List<word> patchNames = patchDic.toc();
     forAll(patchNames, patchI)
@@ -846,6 +859,13 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         forAll (immersedBodies_,ib)
         {
+            if (brownianForce_)
+            {
+                immersedBodies_[ib].setBrownianForces(forces(brownianForce_->computeBrownianForce(
+                    immersedBodies_[ib].getibContactClass(), deltaTime*step*0.5
+                ), vector::zero));
+            }
+
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
 
             if(Pstream::myProcNo() == 0 )
@@ -1258,6 +1278,13 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
 
         forAll (immersedBodies_,ib)
         {
+            if (brownianForce_)
+            {
+                immersedBodies_[ib].setBrownianForces(forces(brownianForce_->computeBrownianForce(
+                    immersedBodies_[ib].getibContactClass(), deltaTime*step*0.5
+                ), vector::zero));
+            }
+
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
         }
 
