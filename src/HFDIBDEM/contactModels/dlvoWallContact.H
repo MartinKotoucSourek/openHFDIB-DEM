@@ -22,28 +22,83 @@ License
     You should have received a copy of the GNU Lesser General Public License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
-Namspace
+InNamspace
     contactModel
 
 Description
-    namespace providing functions to solve contacts
+    methods to solve particle-wall dlvo contact
+
+SourceFiles
+    dlvoContact.C
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef contactModel_H
-#define contactModel_H
+#ifndef dlvoWallContact_H
+#define dlvoWallContact_H
+
+#include "dictionary.H"
+#include "fvCFD.H"
+// #include "fvMesh.H"
+
+#include "forces.H"
+#include "ibContactVars.H"
+#include "ibContactClass.H"
+
+#include <optional>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "prtContact.H"
-#include "wallContact.H"
-#include "dlvoContact.H"
-#include "dlvoWallContact.H"
-#include "cyclicContact.H"
-#include "materialInfo.H"
+namespace Foam
+{
+
+/*---------------------------------------------------------------------------*\
+                 Namespace contactModel functions Declaration
+\*---------------------------------------------------------------------------*/
+
+namespace contactModel
+{
+
+    forces solveDlvoWallContact_ArbShape(
+        ibContactClass& ibContact,
+        ibContactVars& ibVars,
+        List<std::shared_ptr<boundBox>> bboxes,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
+
+    forces solveDlvoWallContact_Sphere
+    (
+        ibContactClass& ibContact,
+        ibContactVars& ibVars,
+        List<std::shared_ptr<boundBox>> bboxes,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
+
+    forces solveDlvoWallContact_Cluster
+    (
+        ibContactClass& ibContact,
+        ibContactVars& ibVars,
+        List<std::shared_ptr<boundBox>> bboxes,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
+
+    forces solveDlvoWallContact(
+        ibContactClass& ibContact,
+        ibContactVars& ibVars,
+        List<std::shared_ptr<boundBox>> bboxes,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

@@ -45,6 +45,12 @@ namespace Foam
                       Class wallMatInfo Declaration
 \*---------------------------------------------------------------------------*/
 
+enum class wallDlvoModel
+{
+    NONE,
+    CHARGED,
+    SYMMETRIC
+};
 
 class wallMatInfo
 {
@@ -55,6 +61,11 @@ class wallMatInfo
         return wallMatInfo_;
     }
 
+    static const HashTable<wallDlvoModel,string,Hash<string>>& getWallDlvoInfo()
+    {
+        return wallDlvoInfo_;
+    }
+
     static List<string> getWallPatches()
     {
         return wallMatInfo_.toc();
@@ -63,14 +74,17 @@ class wallMatInfo
     static void wallMatInfo_insert
     (
         const string& wallPatch,
-        const materialInfo& matInfo
+        const materialInfo& matInfo,
+        const wallDlvoModel& dlvoModel
     )
     {
         wallMatInfo_.insert(wallPatch,matInfo);
+        wallDlvoInfo_.insert(wallPatch,dlvoModel);
     };
 
     //- Hash table for storing wall material information
     static HashTable<materialInfo,string,Hash<string>> wallMatInfo_;
+    static HashTable<wallDlvoModel,string,Hash<string>> wallDlvoInfo_;
 
 };
 

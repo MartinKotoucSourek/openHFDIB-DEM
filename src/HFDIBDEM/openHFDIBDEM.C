@@ -297,6 +297,35 @@ rhoF_(transportProperties_.lookup("rho"))
         vector patchNVec = patchDic.subDict(patchNames[patchI]).lookup("nVec");
         vector planePoint = patchDic.subDict(patchNames[patchI]).lookup("planePoint");
 
+        wallDlvoModel wallDlvoM = wallDlvoModel::NONE;
+        word dlvoModelStr = "NONE";
+        if (patchDic.subDict(patchNames[patchI]).found("dlvoModel"))
+        {
+            word dlvoModelStrInput = patchDic.subDict(patchNames[patchI]).lookup("dlvoModel");
+            dlvoModelStr = dlvoModelStrInput.capitalise();
+            if (dlvoModelStr == "NONE")
+            {
+                wallDlvoM = wallDlvoModel::NONE;
+            }
+            else if (dlvoModelStr == "CHARGED")
+            {
+                wallDlvoM = wallDlvoModel::CHARGED;
+                useWallDlvo_ = true;
+            }
+            else if (dlvoModelStr == "SYMMETRIC")
+            {
+                wallDlvoM = wallDlvoModel::SYMMETRIC;
+                useWallDlvo_ = true;
+            }
+            else
+            {
+                Info << "DLVO Model: " << dlvoModelStr << " for wall not recognized, setting to default NONE" << endl;
+                wallDlvoM = wallDlvoModel::NONE;
+            }
+        }
+
+        Info << "Wall DLVO Model for patch " << patchNames[patchI] << " is set to : " << dlvoModelStr << endl;
+
         wallPlaneInfo::wallPlaneInfo_insert(
             patchNames[patchI],
             patchNVec,
@@ -305,7 +334,8 @@ rhoF_(transportProperties_.lookup("rho"))
 
         wallMatInfo::wallMatInfo_insert(
             patchNames[patchI],
-            materialProperties::getMatProps()[patchMaterial]
+            materialProperties::getMatProps()[patchMaterial],
+            wallDlvoM
         );
     }
 
@@ -1273,6 +1303,17 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
             if (dlvoInfo::useTangLubr())
             {
                 dlvoPairs_ = std::move(dlvoPairsNew_);
+            }
+        }
+
+        if (useWallDlvo_)
+        {
+            for (int j = 0; j < immersedBodies_.size(); ++j)
+            {
+                immersedBodies_[j].updateDlvoForces
+                (
+                    solveDlvoWallContact(immersedBodies_[j].getibContactClass(), immersedBodies_[j].getContactVars(), immersedBodies_[j].getDlvo()->getBBoxes(), nuF_, rhoF_)
+                );
             }
         }
 

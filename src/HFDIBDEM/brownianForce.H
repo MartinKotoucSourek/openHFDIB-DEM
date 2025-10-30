@@ -107,8 +107,8 @@ class brownianForce
     T_(T),
     muc_(muc),
     rhoF_(rhoF),
-    rndGen_(0),
-    stability_(stability)
+    stability_(stability),
+    rndGen_(0)
     {
         if (lambda_ <= 0 || T_ <= 0)
         {

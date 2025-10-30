@@ -139,6 +139,8 @@ namespace Foam
 
     std::shared_ptr<brownianForce> brownianForce_;
 
+    bool useWallDlvo_ = false;
+
     public:
 
     // Constructors ----------------------------------------------------

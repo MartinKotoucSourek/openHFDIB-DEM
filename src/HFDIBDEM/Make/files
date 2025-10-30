@@ -24,6 +24,7 @@ contactModels/dlvoContactInfo.C
 contactModels/prtContact.C
 contactModels/wallContact.C
 contactModels/dlvoContact.C
+contactModels/dlvoWallContact.C
 contactModels/cyclicContact.C
 contactModels/verletList/verletList.C
 contactModels/verletList/vCntcList.C

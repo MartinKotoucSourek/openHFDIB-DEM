@@ -64,6 +64,9 @@ HashTable<scalar,string,Hash<string>> interAdhesion::matInterAdh_ =
 HashTable<materialInfo,string,Hash<string>> wallMatInfo::wallMatInfo_ =
     HashTable<materialInfo,string,Hash<string>>();
 
+HashTable<wallDlvoModel,string,Hash<string>> wallMatInfo::wallDlvoInfo_ =
+    HashTable<wallDlvoModel,string,Hash<string>>();
+
 HashTable<List<vector>,string,Hash<string>> wallPlaneInfo::wallPlaneInfo_ =
     HashTable<List<vector>,string,Hash<string>>();
 
