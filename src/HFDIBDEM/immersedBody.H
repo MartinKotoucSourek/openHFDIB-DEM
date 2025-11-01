@@ -50,6 +50,7 @@ Contributors
 #include "wallContactInfo.H"
 #include "interpolationInfo.H"
 #include "ibInterpolation.H"
+#include "dlvoClass.H"
 
 #include "virtualMesh.H"
 namespace Foam
@@ -95,6 +96,8 @@ namespace Foam
 
         autoPtr<wallContactInfo> wallCntInfo_;
 
+        std::shared_ptr<dlvoClass> dlvo_;
+
         // precalculate cellPoints for better performace
         List<labelList>& cellPoints_;
 
@@ -125,6 +128,12 @@ namespace Foam
 
         // forces acting on the particle due to the contact
         forces FContact_;
+
+        // forces acting on the particle due to the dlvo theory
+        forces FDlvo_;
+
+        // forces acting on the particle due to the Brownian motion
+        forces FBrownian_;
 
         // maximal body Courant number based on its linear velocity
         scalar CoNum_;
@@ -202,6 +211,12 @@ namespace Foam
         ~immersedBody();
 
         // Public methods ----------------------------------------------
+        // update fluid-solid coupling
+        void updateCoupling
+        (
+            volScalarField& body,
+            volVectorField& f
+        );
 
         // move immersed body
         void moveImmersedBody
@@ -370,6 +385,30 @@ namespace Foam
             FContact_ += F;
         }
 
+        // update contact forces
+        void updateDlvoForces
+        (
+            const forces& F
+        )
+        {
+            FDlvo_ += F;
+        }
+
+        // get dlvo forces
+        forces& getDlvoForces()
+        {
+            return FDlvo_;
+        }
+
+        // set brownian forces
+        void setBrownianForces
+        (
+            const forces& F
+        )
+        {
+            FBrownian_ = F;
+        }
+
         void setWallContact(bool inContact)
         {
             ibContactClass_->setWallContact(inContact);
@@ -402,6 +441,12 @@ namespace Foam
         void resetContactForces()
         {
             FContact_.clear();
+        }
+
+        // reset dlvo forces
+        void resetDlvoForces()
+        {
+            FDlvo_.clear();
         }
 
         void switchActiveOff(volScalarField& body);
@@ -488,6 +533,11 @@ namespace Foam
             return wallCntInfo_();
         }
 
+        std::shared_ptr<dlvoClass>& getDlvo()
+        {
+            return dlvo_;
+        }
+
         void recordBodyInfo(IOdictionary& dict, word path)
         {
             dict.add("bodyId",bodyId_);
@@ -525,7 +575,7 @@ namespace Foam
             InfoH << iB_Info;
             InfoH << "-- body " << bodyId_ << " center of mass       : " << geomModel_->getCoM() << endl;
             InfoH << "-- body " << bodyId_ << " linear velocity      : " << Vel_ << endl;
-            InfoH << "-- body " << bodyId_ << " angluar velocity     : " << omega_ << endl;
+            InfoH << "-- body " << bodyId_ << " angular velocity     : " << omega_ << endl;
             InfoH << "-- body " << bodyId_ << " axis of rotation     : " << Axis_ << endl;
         }
 

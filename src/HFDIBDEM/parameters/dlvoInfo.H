@@ -26,17 +26,17 @@ InNamspace
     contactModel
 
 Description
-    Static class for storing wall material information
+    Static class to store dlvo coefficients
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef cyclicPlaneInfo_H
-#define cyclicPlaneInfo_H
+#ifndef dlvoInfo_H
+#define dlvoInfo_H
 
-#include <map>
+#include <math.h>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,55 +44,112 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                      Class wallPlaneInfo Declaration
+                      Class interAdhesion Declaration
 \*---------------------------------------------------------------------------*/
 
 
-class cyclicPlaneInfo
+class dlvoInfo
 {
     public:
 
-    static const HashTable<List<vector>,string,Hash<string>>& getCyclicPlaneInfo()
+    static const bool& isActive()
     {
-        return cyclicPlaneInfo_;
-    }
+        return active_;
+    };
+    static bool active_;
 
-    static const vector getCyclicTransVec(const string& cyclicPatch)
+    static const bool& useDLVO()
     {
-        const string& cyclicPatchNeighbour = cyclicPatchPairs_[cyclicPatch];
-
-        vector transVec = cyclicPlaneInfo_[cyclicPatchNeighbour][1] - cyclicPlaneInfo_[cyclicPatch][1];
-
-        // Info << "transVec1: " << transVec << endl;
-
-        transVec = cyclicPlaneInfo_[cyclicPatch][0] * (transVec & cyclicPlaneInfo_[cyclicPatch][0]);
-
-        // Info << "transVec2: " << transVec << endl;
-
-        return transVec;
-    }
-
-    static void insert
-    (
-        const string& cyclicPatch,
-        const vector& patchNVec,
-        const vector& planePoint,
-        const string& cyclicPatchNeighbour
-    )
-    {
-        List<vector> planeInfo{{patchNVec / mag(patchNVec),planePoint}};
-        cyclicPlaneInfo_.insert(cyclicPatch,planeInfo);
-
-        if (cyclicPatchPairs_.find(cyclicPatch) == cyclicPatchPairs_.end())
-        {
-            cyclicPatchPairs_.insert(std::pair<string,string>(cyclicPatch,cyclicPatchNeighbour));
-        }
+        return useDLVO_;
     };
 
-    //- Hash table for storing wall material information
-    static HashTable<List<vector>,string,Hash<string>> cyclicPlaneInfo_;
-    static std::map<string, string> cyclicPatchPairs_;
+    static const bool& useTangLubr()
+    {
+        return useTangLubr_;
+    };
 
+    static const bool& useTransLubr()
+    {
+        return useTransLubr_;
+    };
+
+    static const scalar& getA()
+    {
+        return A_;
+    };
+
+    static const scalar& getEps0()
+    {
+        return eps0_;
+    };
+
+    static const scalar& getEpsR()
+    {
+        return epsR_;
+    };
+
+    static const scalar& getZeta()
+    {
+        return zeta_;
+    };
+
+    static const scalar& getRecDebay()
+    {
+        return recDebay_;
+    };
+
+    static const scalar& getCutOff()
+    {
+        return cutOff_;
+    };
+
+    static const scalar& getMinSurfDist()
+    {
+        return minSurfDist_;
+    };
+
+    static const scalar& getTanLubrC()
+    {
+        return tanLubrC_;
+    };
+
+    static const scalar& getTanLubrRelax()
+    {
+        return tanLubrRelax_;
+    };
+
+    static const scalar& getCharCellSize()
+    {
+        return charCellSize_;
+    };
+
+    static void computeFactorZ()
+    {
+        const scalar boltzmann = 1.38064852e-23;
+        const scalar temperature = 298.15;
+        const scalar elementaryCharge = 1.60217662e-19;
+        factorZ = 64.0 * 3.14 * eps0_ * epsR_ * pow(boltzmann * temperature / elementaryCharge, 2) * pow(tanh(elementaryCharge * zeta_ / (4 * boltzmann * temperature)), 2);
+    };
+
+    static const scalar& getFactorZ()
+    {
+        return factorZ;
+    };
+
+    static bool useDLVO_;
+    static bool useTangLubr_;
+    static bool useTransLubr_;
+    static scalar A_;
+    static scalar eps0_;
+    static scalar epsR_;
+    static scalar zeta_;
+    static scalar recDebay_;
+    static scalar factorZ;
+    static scalar cutOff_;
+    static scalar minSurfDist_;
+    static scalar tanLubrC_;
+    static scalar tanLubrRelax_;
+    static scalar charCellSize_;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -44,6 +44,8 @@ Contributors
 #include "defineExternVars.H"
 #include "parameters.H"
 
+#include "dlvoContactInfo.H"
+
 #define ORDER 2
 
 using namespace Foam;
@@ -78,7 +80,9 @@ transportProperties_
 bodyNames_(HFDIBDEMDict_.lookup("bodyNames")),
 prtcInfoTable_(0),
 stepDEM_(readScalar(HFDIBDEMDict_.lookup("stepDEM"))),
-recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
+recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation"))),
+nuF_(transportProperties_.lookup("nu")),
+rhoF_(transportProperties_.lookup("rho"))
 {
     materialProperties::matProps_insert(
         "None",
@@ -93,6 +97,16 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
     if(HFDIBDEMDict_.found("nSolidsInDomain"))
     {
         solverInfo::setNSolidsTreshnold(readLabel(HFDIBDEMDict_.lookup("nSolidsInDomain")));
+    }
+
+    if(HFDIBDEMDict_.found("minPimpleLoops"))
+    {
+        minPimpleLoops_ = readLabel(HFDIBDEMDict_.lookup("minPimpleLoops"));
+    }
+    if (HFDIBDEMDict_.found("theta"))
+    {
+        theta_ = readScalar(HFDIBDEMDict_.lookup("theta"));
+        InfoH << basic_Info << "Theta relaxation factor is set to : " << theta_ << endl;
     }
 
     dictionary demDic = HFDIBDEMDict_.subDict("DEM");
@@ -125,7 +139,6 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
                 readScalar(matIDic.lookup("nu")),
                 readScalar(matIDic.lookup("mu")),
                 readScalar(matIDic.lookup("adhN")),
-                // readScalar(matIDic.lookup("eps"))
                 eps
             )
         );
@@ -193,8 +206,94 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         contactModelInfo::setRotationModel(1);
     }
 
-
     Info <<" -- Coefficient for characteristic Lenght Lc is set to : "<< contactModelInfo::getLcCoeff() << endl;
+    scalar charCellSize = pow(mesh_.V()[1], 1.0/3.0);
+    scalar vMeshLevel = 1;
+
+    if (HFDIBDEMDict_.isDict("virtualMesh"))
+    {
+        dictionary vMDic = HFDIBDEMDict_.subDict("virtualMesh");
+        vMeshLevel = readScalar(vMDic.lookup("level"));
+        charCellSize = readScalar(vMDic.lookup("charCellSize"));
+    }
+
+    virtualMeshLevel::setVirtualMeshLevel(vMeshLevel,charCellSize);
+    Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
+    Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
+
+    if(demDic.found("dlvo"))
+    {
+        dictionary dlvoDic = demDic.subDict("dlvo");
+        if (dlvoDic.found("useDLVO"))
+        {
+            dlvoInfo::useDLVO_ = readBool(dlvoDic.lookup("useDLVO"));
+        }
+        Info << (dlvoInfo::useDLVO_ ? "DLVO is active" : "DLVO is not active") << endl;
+        if (dlvoDic.found("useTangLubr"))
+        {
+            dlvoInfo::useTangLubr_ = readBool(dlvoDic.lookup("useTangLubr"));
+        }
+        Info << (dlvoInfo::useTangLubr_ ? "Tangential Lubrication is active" : "Tangential Lubrication is not active") << endl;
+        if (dlvoDic.found("useTransLubr"))
+        {
+            dlvoInfo::useTransLubr_ = readBool(dlvoDic.lookup("useTransLubr"));
+        }
+        Info << (dlvoInfo::useTransLubr_ ? "Translation Lubrication is active" : "Translation Lubrication is not active") << endl;
+        if (dlvoDic.found("A"))
+        {
+            dlvoInfo::A_ = readScalar(dlvoDic.lookup("A"));
+        }
+        if (dlvoDic.found("eps0"))
+        {
+            dlvoInfo::eps0_ = readScalar(dlvoDic.lookup("eps0"));
+        }
+        if (dlvoDic.found("epsR"))
+        {
+            dlvoInfo::epsR_ = readScalar(dlvoDic.lookup("epsR"));
+        }
+        if (dlvoDic.found("zeta"))
+        {
+            dlvoInfo::zeta_ = readScalar(dlvoDic.lookup("zeta"));
+        }
+        if (dlvoDic.found("recK"))
+        {
+            dlvoInfo::recDebay_ = 1.0 / readScalar(dlvoDic.lookup("recK"));
+        }
+        if (dlvoDic.found("cutOff"))
+        {
+            dlvoInfo::cutOff_ = readScalar(dlvoDic.lookup("cutOff"));
+        }
+        if (dlvoDic.found("minSurfDist"))
+        {
+            dlvoInfo::minSurfDist_ = readScalar(dlvoDic.lookup("minSurfDist"));
+        }
+        if (dlvoDic.found("tanLubrC"))
+        {
+            dlvoInfo::tanLubrC_ = readScalar(dlvoDic.lookup("tanLubrC"));
+        }
+        if (dlvoDic.found("tanLubrRelax"))
+        {
+            dlvoInfo::tanLubrRelax_ = readScalar(dlvoDic.lookup("tanLubrRelax"));
+        }
+
+        dlvoInfo::charCellSize_ = charCellSize;
+        dlvoInfo::computeFactorZ();
+
+        dlvoInfo::active_ = dlvoInfo::useDLVO_ || dlvoInfo::useTangLubr_ || dlvoInfo::useTransLubr_;
+    }
+
+    if (demDic.found("brownian"))
+    {
+        Info << "Brownian force is active" << endl;
+
+        dictionary brownianDic = demDic.subDict("brownian");
+        scalar lambda = readScalar(brownianDic.lookup("lambda"));
+        scalar temperature = readScalar(brownianDic.lookup("T"));
+        scalar muc = rhoF_.value() * nuF_.value();
+        scalar stability = readScalar(brownianDic.lookup("stability"));
+
+        brownianForce_ = std::make_shared<brownianForce>(lambda, temperature, muc, rhoF_.value(), stability);
+    }
 
     dictionary patchDic = demDic.subDict("collisionPatches");
     List<word> patchNames = patchDic.toc();
@@ -204,6 +303,35 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
         vector patchNVec   = vector(patchDic.subDict(patchNames[patchI]).lookup("nVec"));
         vector planePoint  = vector(patchDic.subDict(patchNames[patchI]).lookup("planePoint"));
 
+        wallDlvoModel wallDlvoM = wallDlvoModel::NONE;
+        word dlvoModelStr = "NONE";
+        if (patchDic.subDict(patchNames[patchI]).found("dlvoModel"))
+        {
+            word dlvoModelStrInput = patchDic.subDict(patchNames[patchI]).lookup("dlvoModel");
+            dlvoModelStr = dlvoModelStrInput.capitalise();
+            if (dlvoModelStr == "NONE")
+            {
+                wallDlvoM = wallDlvoModel::NONE;
+            }
+            else if (dlvoModelStr == "CHARGED")
+            {
+                wallDlvoM = wallDlvoModel::CHARGED;
+                useWallDlvo_ = true;
+            }
+            else if (dlvoModelStr == "SYMMETRIC")
+            {
+                wallDlvoM = wallDlvoModel::SYMMETRIC;
+                useWallDlvo_ = true;
+            }
+            else
+            {
+                Info << "DLVO Model: " << dlvoModelStr << " for wall not recognized, setting to default NONE" << endl;
+                wallDlvoM = wallDlvoModel::NONE;
+            }
+        }
+
+        Info << "Wall DLVO Model for patch " << patchNames[patchI] << " is set to : " << dlvoModelStr << endl;
+
         wallPlaneInfo::wallPlaneInfo_insert(
             patchNames[patchI],
             patchNVec,
@@ -212,7 +340,8 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
 
         wallMatInfo::wallMatInfo_insert(
             patchNames[patchI],
-            materialProperties::getMatProps()[patchMaterial]
+            materialProperties::getMatProps()[patchMaterial],
+            wallDlvoM
         );
     }
 
@@ -255,22 +384,6 @@ recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation")))
             emptyDim = direction;
             break;
         }
-    }
-
-    if (HFDIBDEMDict_.isDict("virtualMesh"))
-    {
-        dictionary vMDic = HFDIBDEMDict_.subDict("virtualMesh");
-        virtualMeshLevel::setVirtualMeshLevel(readScalar(vMDic.lookup("level")),readScalar(vMDic.lookup("charCellSize")));
-        Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
-        Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
-
-    }
-    else
-    {
-        virtualMeshLevel::setVirtualMeshLevel(1,1);
-        Info <<" -- VirtMesh Decomposition Level is set to        : "<< virtualMeshLevel::getVirtualMeshLevel() << endl;
-        Info <<" -- VirtMesh charCellSize for boundary is set to  : "<< virtualMeshLevel::getCharCellSize() << endl;
-
     }
 
     recordOutDir_ = mesh_.time().rootPath() + "/" + mesh_.time().globalCaseName() + "/bodiesInfo";
@@ -422,7 +535,8 @@ void openHFDIBDEM::initialize
                 {
                     immersedBodies_[addIBPos].initSyncWithFlow(U);
                 }
-                verletList_.addBodyToVList(immersedBodies_[addIBPos]);
+                vCntcList_.addBodyToVList(immersedBodies_[addIBPos]);
+                vDlvoList_.addBodyToVList(immersedBodies_[addIBPos]);
                 InfoH << addModel_Info << "Body based on: " << bodyName << " successfully added" << endl;
                 cAddition = 0;
             }
@@ -436,7 +550,8 @@ void openHFDIBDEM::initialize
         }
     }
 
-    verletList_.initialSorting();
+    vCntcList_.initialSorting();
+    vDlvoList_.initialSorting();
 }
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
@@ -512,8 +627,8 @@ void openHFDIBDEM::createBodies(volScalarField& body,volScalarField& refineF)
             immersedBodies_[bodyId].updateOldMovementVars();
         }
     }
-    
-    
+
+
     volVectorField gradBody(fvc::grad(body));
     forAll (immersedBodies_,bodyId)
     {
@@ -600,7 +715,7 @@ void openHFDIBDEM::recreateBodies
 }
 //---------------------------------------------------------------------------//
 void openHFDIBDEM::interpolateIB
-( 
+(
     volVectorField & V,
     volVectorField & Vs,
     volScalarField & body
@@ -658,12 +773,10 @@ void openHFDIBDEM::writeBodiesInfo()
     label bodiesPerProc = ceil(listZize/Pstream::nProcs());
     InfoH << basic_Info << "Active IB listZize      : " << listZize<< endl;
     InfoH << basic_Info << "bodiesPerProc : " << bodiesPerProc<< endl;
-    // Pout << "Processor "<< Pstream::myProcNo() << endl;
 
     for(int assignProc = Pstream::myProcNo()*bodiesPerProc; assignProc < min((Pstream::myProcNo()+1)*bodiesPerProc,activeIB.size()); assignProc++)
     {
         const label bodyId(activeIB[assignProc]);
-        // Pout <<"Processor "<< Pstream::myProcNo() << " writes Body " << bodyId << endl;
         word path(curOutDir + "/body" + std::to_string(immersedBodies_[bodyId].getBodyId()) +".info");
         OFstream ofStream(path);
         IOobject outClass
@@ -680,78 +793,113 @@ void openHFDIBDEM::writeBodiesInfo()
         outDict.writeData(ofStream);
     }
 
-}
-//---------------------------------------------------------------------------//
-void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
-{
-    if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
+    if (dlvoInfo::useDLVO_)
     {
-        forAll (immersedBodies_,bodyId)
+        std::map<label, Tuple2<label, scalar>> dlvoStats;
+
+        forAll (immersedBodies_,cI)
         {
-            if (!immersedBodies_[bodyId].getGeomModel().isCluster())
+            forAll (immersedBodies_,tI)
             {
-                vector transVec = vector::zero;
-
-                if (detectCyclicContact(
-                    immersedBodies_[bodyId].getWallCntInfo(),
-                    transVec
-                ))
+                if (cI == tI)
                 {
-                    verletList_.removeBodyFromVList(immersedBodies_[bodyId]);
-
-                    scalar thrSurf(readScalar(HFDIBDEMDict_.lookup("surfaceThreshold")));
-                    std::shared_ptr<periodicBody> newPeriodicBody
-                        = std::make_shared<periodicBody>(mesh_, thrSurf);
-
-                    newPeriodicBody->setRhoS(immersedBodies_[bodyId].getGeomModel().getRhoS());
-                    std::shared_ptr<geomModel> iBcopy(immersedBodies_[bodyId].getGeomModel().getCopy());
-                    iBcopy->bodyMovePoints(transVec);
-                    newPeriodicBody->addBodyToCluster(immersedBodies_[bodyId].getGeomModelPtr());
-                    newPeriodicBody->addBodyToCluster(iBcopy);
-                    immersedBodies_[bodyId].getGeomModelPtr() = newPeriodicBody;
-
-                    verletList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body created for body " << bodyId << endl;
+                    continue;
                 }
-            }
-            else
-            {
-                periodicBody& cBody = dynamic_cast<periodicBody&>(immersedBodies_[bodyId].getGeomModel());
 
-                if(cBody.shouldBeUnclustered())
+                // const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+                label cInd(cI);
+                label tInd(tI);
+
+                immersedBody& cIb(immersedBodies_[cInd]);
+                immersedBody& tIb(immersedBodies_[tInd]);
+
+                scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM()) - cIb.getGeomModel().getDC() / 2 - tIb.getGeomModel().getDC() / 2;
+
+                if (dlvoStats.count(cInd) == 0)
                 {
-                    verletList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+                }
+                else
+                {
+                    dlvoStats[cInd].first()++;
+                    if (distance < dlvoStats[cInd].second())
+                    {
+                        dlvoStats[cInd].second() = distance;
+                    }
+                }
 
-                    immersedBodies_[bodyId].getGeomModelPtr() = cBody.getRemGeomModel();
-
-                    verletList_.addBodyToVList(immersedBodies_[bodyId]);
-                    Info << "Periodic body unclustered for body " << bodyId << endl;
+                if (dlvoStats.count(tInd) == 0)
+                {
+                    dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+                }
+                else
+                {
+                    dlvoStats[tInd].first()++;
+                    if (distance < dlvoStats[tInd].second())
+                    {
+                        dlvoStats[tInd].second() = distance;
+                    }
                 }
             }
         }
-    }
 
+        Info << "DLVO stats start" << endl;
+
+        for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
+        {
+            Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
+        }
+
+        Info << "DLVO stats end" << endl;
+    }
+}
+//---------------------------------------------------------------------------//
+void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
+{
     scalar deltaTime(mesh_.time().deltaT().value());
     scalar pos(0.0);
     scalar step(stepDEM_);
-    // scalar timeStep(step*deltaTime);
+
     List<DynamicList<pointField>> bodiesPositionList(Pstream::nProcs());
-    // Infos <<bodiesPositionList.size() << endl;
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> syncOutForceKeyTable;
     HashTable <label,Tuple2<label, label>,Hash<Tuple2<label, label>>> contactResolvedKeyTable;
     HashTable <label,label,Hash<label>> wallContactIBTable;
+
+    volScalarField surface = body;
+    forAll(surface, sI)
+    {
+        if (body[sI] > 0)
+            surface[sI] = 1;
+        else
+            surface[sI] = 0;
+    }
+
     while( pos < 1)
     {
-        bodiesPositionList[Pstream::myProcNo()].clear();
+        // Updating fluid force
+        volVectorField cUi = Ui;
+        interpolateIB(U, cUi, body);
+        volVectorField cf = f + theta_ * surface*(cUi - U)/(mesh_.time().deltaT() * step);
+        forAll (immersedBodies_,bodyId)
+        {
+            immersedBodies_[bodyId].updateCoupling(body, cf);
+        }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos
             << " DEM step: " << step << endl;
 
         InfoH << basic_Info << " DEM - CFD Time: "
-            << mesh_.time().value() + deltaTime*pos << endl;
+            << mesh_.time().value() - deltaTime*(1-pos) << endl;
 
         forAll (immersedBodies_,ib)
         {
+            if (brownianForce_)
+            {
+                immersedBodies_[ib].setBrownianForces(forces(brownianForce_->computeBrownianForce(
+                    immersedBodies_[ib].getibContactClass(), deltaTime*step*0.5
+                ), vector::zero));
+            }
+
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
 
             if(Pstream::myProcNo() == 0 )
@@ -793,10 +941,10 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
                 }
             }
         }
-
         bodiesPositionList[Pstream::myProcNo()].clear();
 
-        verletList_.update(immersedBodies_);
+        vCntcList_.update(immersedBodies_);
+        vDlvoList_.update(immersedBodies_);
 
         DynamicLabelList wallContactIB;
         wallContactIBTable.clear();
@@ -807,6 +955,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
             {
                 // set F_ and T_ to zero.
                 cIb.resetContactForces();
+                cIb.resetDlvoForces();
 
                 if(cIb.getbodyOperation() != 0)
                 {
@@ -822,18 +971,16 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
                         cIb.getibContactClass().inContactWithStatic(true);
                         wallContactIB.append(bodyId);
                         wallContactIBTable.insert(bodyId,wallContactIB.size()-1);
-                        // cIb.getWallCntInfo().registerSubContactList(wallContactList);
                     }
                 }
             }
         }
-        // possibleWallContacts = wallContactIB.size();
+
         List<bool> wallContactResolvedList(wallContactIB.size(),false);
 
         if(wallContactIB.size() > 0)
         {
             label wallContactPerProc(ceil(double(wallContactIB.size())/Pstream::nProcs()));
-            // Info <<" wallContactPerProc : "<< wallContactPerProc << endl;
             if( wallContactIB.size() <= Pstream::nProcs())
             {
                 wallContactPerProc = 1;
@@ -901,17 +1048,17 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
                 cIb.updateContactForces(cF);
                 cIb.getWallCntInfo().clearOldContact();
-                
+
                 cIb.resetCouplingHistory();
             }
         }
 
         wallContactIB.clear();
-
         DynamicList<prtSubContactInfo*> contactList;
-        // check only pairs whose bounding boxes are intersected for the contact
+
         label vListSize(0);
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        // check only pairs whose bounding boxes are intersected for the contact
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
@@ -941,8 +1088,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
                     mesh_,
                     prtcInfo
                 );
-
-                // prtcInfo.syncContactList();
 
                 prtcInfo.registerContactList(contactList);
             }
@@ -976,7 +1121,6 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
                 if(detectPrtPrtContact(mesh_,cClass,tClass,*sCI))
                 {
-                    // resolvedPrtContacts++;
                     prtContactInfo& prtcInfo(getPrtcInfo(cPair));
 
                     bool resolved(solvePrtContact(mesh_, prtcInfo, *sCI, deltaTime*step));
@@ -1002,7 +1146,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
         syncOutForceKeyTable.clear();
 
         label nIter(0);
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
 
@@ -1033,7 +1177,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
         label nvListIter(0);
 
-        for (auto it = verletList_.begin(); it != verletList_.end(); ++it)
+        for (auto it = vCntcList_.begin(); it != vCntcList_.end(); ++it)
         {
             const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
             label cInd(cPair.first());
@@ -1081,7 +1225,7 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
 
                 immersedBodies_[cInd].updateContactForces(cF);
                 immersedBodies_[tInd].updateContactForces(tF);
-                
+
                 immersedBodies_[cInd].resetCouplingHistory();
                 immersedBodies_[tInd].resetCouplingHistory();
             }
@@ -1095,27 +1239,209 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF)
             }
         }
 
+        if (dlvoInfo::isActive())
+        {
+            HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairsNew_;
+            std::vector<std::pair<label, label>> dlvoContacs(vDlvoList_.begin(), vDlvoList_.end());
+            List<DynamicList<vector>> dlvoTangForceList(Pstream::nProcs());
+            List<List<vector>> bodyDlvoForceList(Pstream::nProcs(), List<vector>(immersedBodies_.size(), vector::zero));
+            List<List<vector>> bodyDlvoTorqueList(Pstream::nProcs(), List<vector>(immersedBodies_.size(), vector::zero));
+
+            label contactPerProc(ceil(double(dlvoContacs.size())/Pstream::nProcs()));
+            if(static_cast<int>(dlvoContacs.size()) <= Pstream::nProcs())
+            {
+                contactPerProc = 1;
+            }
+
+            if(dlvoContacs.size() > 0 )
+            {
+                auto it = Pstream::myProcNo()*contactPerProc < static_cast<int>(dlvoContacs.size()) ? dlvoContacs.begin() + Pstream::myProcNo()*contactPerProc : dlvoContacs.end();
+                for(; it != dlvoContacs.end() && it < dlvoContacs.begin() + min((Pstream::myProcNo()+1)*contactPerProc, static_cast<int>(dlvoContacs.size())); it++)
+                {
+                    const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+                    label cInd(cPair.first());
+                    label tInd(cPair.second());
+
+                    dlvoContactInfo dlvoInfo(immersedBodies_[cInd].getibContactClass(), immersedBodies_[tInd].getibContactClass(), immersedBodies_[cInd].getContactVars(), immersedBodies_[tInd].getContactVars(), immersedBodies_[cInd].getDlvo()->getBBoxes(), immersedBodies_[tInd].getDlvo()->getBBoxes());
+
+                    if (dlvoInfo::useTangLubr() && dlvoPairs_.found(cPair))
+                    {
+                        dlvoInfo.getLastTangLubrForce() = dlvoPairs_[cPair];
+                    }
+                    Tuple2<forces,forces> dlvoForces = solveDlvoContact(dlvoInfo, nuF_, rhoF_);
+
+                    dlvoTangForceList[Pstream::myProcNo()].append(dlvoInfo.getLastTangLubrForce());
+                    bodyDlvoForceList[Pstream::myProcNo()][cInd] += dlvoForces.first().F;
+                    bodyDlvoTorqueList[Pstream::myProcNo()][cInd] += dlvoForces.first().T;
+                    bodyDlvoForceList[Pstream::myProcNo()][tInd] += dlvoForces.second().F;
+                    bodyDlvoTorqueList[Pstream::myProcNo()][tInd] += dlvoForces.second().T;
+                }
+            }
+
+            Pstream::gatherList(dlvoTangForceList);
+            Pstream::scatterList(dlvoTangForceList);
+            Pstream::gatherList(bodyDlvoForceList);
+            Pstream::scatterList(bodyDlvoForceList);
+            Pstream::gatherList(bodyDlvoTorqueList);
+            Pstream::scatterList(bodyDlvoTorqueList);
+
+            label cntNum = 0;
+            for (int i = 0; i < Pstream::nProcs(); ++i)
+            {
+                if (dlvoInfo::useTangLubr())
+                {
+                    for (auto const& tangForce : dlvoTangForceList[i])
+                    {
+                        const Tuple2<label, label> cPair = Tuple2<label, label>(dlvoContacs[cntNum].first, dlvoContacs[cntNum].second);
+                        dlvoPairsNew_.insert(cPair, tangForce);
+                        cntNum++;
+                    }
+                }
+
+                for (int j = 0; j < immersedBodies_.size(); ++j)
+                {
+                    immersedBodies_[j].updateDlvoForces
+                    (
+                        forces(bodyDlvoForceList[i][j], bodyDlvoTorqueList[i][j])
+                    );
+                }
+            }
+
+            // Info << "dlvo force immersed body 0: " << immersedBodies_[0].getDlvoForces().F << endl;
+
+            if (dlvoInfo::useTangLubr())
+            {
+                dlvoPairs_ = std::move(dlvoPairsNew_);
+            }
+        }
+
+        if (useWallDlvo_)
+        {
+            for (int j = 0; j < immersedBodies_.size(); ++j)
+            {
+                immersedBodies_[j].updateDlvoForces
+                (
+                    solveDlvoWallContact(immersedBodies_[j].getibContactClass(), immersedBodies_[j].getContactVars(), immersedBodies_[j].getDlvo()->getBBoxes(), nuF_, rhoF_)
+                );
+            }
+        }
+
         forAll (immersedBodies_,ib)
         {
+            if (brownianForce_)
+            {
+                immersedBodies_[ib].setBrownianForces(forces(brownianForce_->computeBrownianForce(
+                    immersedBodies_[ib].getibContactClass(), deltaTime*step*0.5
+                ), vector::zero));
+            }
+
             immersedBodies_[ib].updateMovement(deltaTime*step*0.5);
-            immersedBodies_[ib].printBodyInfo();
-            // immersedBodies_[ib].computeBodyCoNumber();
-            // if (maxCoNum < immersedBodies_[ib].getCoNum())
-            // {
-                // maxCoNum = immersedBodies_[ib].getCoNum();
-                // bodyId = ib;
-            // }
         }
-        // InfoH << basic_Info << "Max CoNum = " << maxCoNum << " at body " << bodyId << endl;
 
         pos += step;
 
-        if (pos + step + SMALL >= 1)
+        if (pos + step + SMALL >= 1) {
             step = 1 - pos;
-//OS Time effitiency Testing
-        // demItegrationTime_ = DEMIntergrationRun.timeIncrement();
-//OS Time effitiency Testing
+        }
     }
+
+    if (cyclicPlaneInfo::getCyclicPlaneInfo().size() > 0)
+    {
+        forAll (immersedBodies_,bodyId)
+        {
+            if (!immersedBodies_[bodyId].getGeomModel().isCluster())
+            {
+                vector transVec = vector::zero;
+
+                if (detectCyclicContact(
+                    immersedBodies_[bodyId].getWallCntInfo(),
+                    transVec
+                ))
+                {
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
+
+                    scalar thrSurf(readScalar(HFDIBDEMDict_.lookup("surfaceThreshold")));
+                    std::shared_ptr<periodicBody> newPeriodicBody
+                        = std::make_shared<periodicBody>(mesh_, thrSurf);
+
+                    newPeriodicBody->setRhoS(immersedBodies_[bodyId].getGeomModel().getRhoS());
+                    std::shared_ptr<geomModel> iBcopy(immersedBodies_[bodyId].getGeomModel().getCopy());
+                    iBcopy->bodyMovePoints(transVec);
+                    newPeriodicBody->addBodyToCluster(immersedBodies_[bodyId].getGeomModelPtr());
+                    newPeriodicBody->addBodyToCluster(iBcopy);
+                    immersedBodies_[bodyId].getGeomModelPtr() = newPeriodicBody;
+
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
+                }
+            }
+            else
+            {
+                periodicBody& cBody = dynamic_cast<periodicBody&>(immersedBodies_[bodyId].getGeomModel());
+
+                if(cBody.shouldBeUnclustered())
+                {
+                    vCntcList_.removeBodyFromVList(immersedBodies_[bodyId]);
+                    vDlvoList_.removeBodyFromVList(immersedBodies_[bodyId]);
+
+                    immersedBodies_[bodyId].getGeomModelPtr() = cBody.getRemGeomModel();
+
+                    vCntcList_.addBodyToVList(immersedBodies_[bodyId]);
+                    vDlvoList_.addBodyToVList(immersedBodies_[bodyId]);
+                }
+            }
+        }
+    }
+
+    // Info << "DLVO stats start" << endl;
+
+    // std::map<label, Tuple2<label, scalar>> dlvoStats;
+
+    // for (auto it = vDlvoList_.begin(); it != vDlvoList_.end(); ++it)
+    // {
+    //     const Tuple2<label, label> cPair = Tuple2<label, label>(it->first, it->second);
+    //     label cInd(cPair.first());
+    //     label tInd(cPair.second());
+
+    //     immersedBody& cIb(immersedBodies_[cInd]);
+    //     immersedBody& tIb(immersedBodies_[tInd]);
+
+    //     scalar distance = mag(cIb.getGeomModel().getCoM() - tIb.getGeomModel().getCoM());
+
+    //     if (dlvoStats.count(cInd) == 0)
+    //     {
+    //         dlvoStats[cInd] = Tuple2<label, scalar>(1, distance);
+    //     }
+    //     else
+    //     {
+    //         dlvoStats[cInd].first()++;
+    //         if (distance < dlvoStats[cInd].second())
+    //         {
+    //             dlvoStats[cInd].second() = distance;
+    //         }
+    //     }
+
+    //     if (dlvoStats.count(tInd) == 0)
+    //     {
+    //         dlvoStats[tInd] = Tuple2<label, scalar>(1, distance);
+    //     }
+    //     else
+    //     {
+    //         dlvoStats[tInd].first()++;
+    //         if (distance < dlvoStats[tInd].second())
+    //         {
+    //             dlvoStats[tInd].second() = distance;
+    //         }
+    //     }
+    // }
+
+    // for (auto it = dlvoStats.begin(); it != dlvoStats.end(); ++it)
+    // {
+    //     Info << "Body " << it->first << " has " << it->second.first() << " contacts with minimal distance " << it->second.second() << endl;
+    // }
+
+    // Info << "DLVO stats end" << endl;
 }
 //---------------------------------------------------------------------------//
 prtContactInfo& openHFDIBDEM::getPrtcInfo(Tuple2<label,label> cPair)
@@ -1190,7 +1516,8 @@ void openHFDIBDEM::addRemoveBodies
                 {
                     nBody.initSyncWithFlow(U);
                 }
-                verletList_.addBodyToVList(nBody);
+                vCntcList_.addBodyToVList(nBody);
+                vDlvoList_.addBodyToVList(nBody);
 
                 InfoH << addModel_Info
                     << "new body included into the simulation" << endl;
@@ -1324,7 +1651,8 @@ void openHFDIBDEM::restartSimulation
         immersedBodies_[addIBPos].createImmersedBody(body,refineF);
         immersedBodies_[addIBPos].computeBodyCharPars();
         immersedBodies_[addIBPos].setRestartSim(Vel,omega,Axis,isStatic,timeStepsInContWStatic);
-        verletList_.addBodyToVList(immersedBodies_[addIBPos]);
+        vCntcList_.addBodyToVList(immersedBodies_[addIBPos]);
+        vDlvoList_.addBodyToVList(immersedBodies_[addIBPos]);
     }
 }
 //---------------------------------------------------------------------------//

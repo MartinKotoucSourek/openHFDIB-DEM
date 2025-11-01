@@ -28,8 +28,7 @@ InNamspace
 Description
     methods to solve particle-particle contact
 
-SourceFiles
-    prtContact.C
+SourceFile
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),

@@ -94,6 +94,18 @@ struct forces{
         T *= coef;
     }
 
+    void operator*=(const scalar& rhs)
+    {
+        F *= rhs;
+        T *= rhs;
+    }
+
+    void operator/=(const scalar& rhs)
+    {
+        F /= rhs;
+        T /= rhs;
+    }
+
     void clear()
     {
         F = vector::zero;

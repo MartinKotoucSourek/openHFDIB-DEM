@@ -12,6 +12,7 @@ virtualMesh/subVolume.C
 virtualMesh/virtualMesh.C
 virtualMesh/spectatorMesh.C
 virtualMesh/virtualMeshWall.C
+contactModels/dlvoClass.C
 contactModels/materialInfo.C
 contactModels/wallContactVars.C
 contactModels/ibContactClass.C
@@ -19,10 +20,15 @@ contactModels/prtContactInfo.C
 contactModels/prtSubContactInfo.C
 contactModels/wallContactInfo.C
 contactModels/wallSubContactInfo.C
+contactModels/dlvoContactInfo.C
 contactModels/prtContact.C
 contactModels/wallContact.C
+contactModels/dlvoContact.C
+contactModels/dlvoWallContact.C
 contactModels/cyclicContact.C
 contactModels/verletList/verletList.C
+contactModels/verletList/vCntcList.C
+contactModels/verletList/vDlvoList.C
 addModels/addModel.C
 addModels/addModelOnce.C
 addModels/addModelOnceFromFile.C

@@ -22,31 +22,43 @@ License
     You should have received a copy of the GNU Lesser General Public License
     along with openHFDIB. If not, see <http://www.gnu.org/licenses/lgpl.html>.
 
-Namspace
-    contactModel
-
-Description
-    namespace providing functions to solve contacts
+InNamspace
+    Foam
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
+#include "dlvoContactInfo.H"
 
-#ifndef contactModel_H
-#define contactModel_H
+using namespace Foam;
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//---------------------------------------------------------------------------//
+dlvoContactInfo::dlvoContactInfo
+(
+    ibContactClass& cClass,
+    ibContactClass& tClass,
+    ibContactVars& cVars,
+    ibContactVars& tVars,
+    List<std::shared_ptr<boundBox>> cBboxes,
+    List<std::shared_ptr<boundBox>> tBboxes
+)
+:
+cIbContactClass_(cClass),
+tIbContactClass_(tClass),
+cIbContactVars_(cVars),
+tIbContactVars_(tVars),
+cBboxes_(cBboxes),
+tBboxes_(tBboxes),
+lastTangLubrForce_(vector::zero)
+{
+    contactPair_.first() = cIbContactVars_.bodyId_;
+    contactPair_.second() = tIbContactVars_.bodyId_;
+}
 
-#include "prtContact.H"
-#include "wallContact.H"
-#include "dlvoContact.H"
-#include "dlvoWallContact.H"
-#include "cyclicContact.H"
-#include "materialInfo.H"
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-#endif
+dlvoContactInfo::~dlvoContactInfo()
+{
+}
+//---------------------------------------------------------------------------//
 
 // ************************************************************************* //

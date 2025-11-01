@@ -26,113 +26,109 @@ InNamspace
     Foam
 
 Description
-    base class for Verlet lists
+    class for storage of DLVO contact variables
 
 SourceFiles
-    verletList.C
+    dlvoContactInfo.C
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef verletList_H
-#define verletList_H
+#ifndef dlvoContactInfo_H
+#define dlvoContactInfo_H
 
 #include "dictionary.H"
 #include "fvCFD.H"
-#include "verletPoint.H"
-#include "verletContact.H"
-#include "immersedBody.H"
 
-#include <list>
-#include <map>
-#include <unordered_set>
+#include "geomModel.H"
+#include "ibContactVars.H"
+#include "ibContactClass.H"
+#include "prtSubContactInfo.H"
+#include "physicalProperties.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
-struct hashFunction
-{
-  size_t operator()(const std::pair<label, label> &x) const
-  {
-    return x.first ^ x.second;
-  }
-};
-
 /*---------------------------------------------------------------------------*\
-                        Class verletList Declaration
+                      Class prtContactInfo Declaration
 \*---------------------------------------------------------------------------*/
 
-class verletList
+class dlvoContactInfo
 {
-    protected:
+    private:
 
-    typedef DynamicList<label> DynamicLabelList;
-    typedef DynamicList<scalar> DynamicScalarList;
-    typedef DynamicList<vector> DynamicVectorList;
-    typedef DynamicList<point> DynamicPointList;
+    ibContactClass& cIbContactClass_;
+    ibContactClass& tIbContactClass_;
 
-    typedef std::pair<label, label> cPair;
-    typedef std::map<cPair, verletContact> cPairVcontactMap;
+    ibContactVars cIbContactVars_;
+    ibContactVars tIbContactVars_;
 
-    typedef std::unordered_set<cPair, hashFunction> cPairHasSet;
+    List<std::shared_ptr<boundBox>> cBboxes_;
+    List<std::shared_ptr<boundBox>> tBboxes_;
 
-    // List of all verlet boxes
-    std::list<std::shared_ptr<verletBox>> verletBoxes_;
+    Tuple2<label,label> contactPair_;
 
-    List<std::list<std::shared_ptr<verletPoint>>> verletLists_;
-    // List for pairs of intersected Bodies in specific coordinate
-    List<cPairVcontactMap> cntNeighList_;
-    // List of possible contact du to intersection of bounding boxes.
-    // Pair is added to this list when it is present in all 3 cntNeighList_.
-    cPairHasSet posCntList_;
-
-    void swapVerletPoints(
-        std::shared_ptr<verletPoint> a,
-        std::shared_ptr<verletPoint> b,
-        label coord
-    );
-
-    void addCPairToCntNList(
-        cPair cPair,
-        label coord,
-        std::shared_ptr<verletPoint> a,
-        std::shared_ptr<verletPoint> b
-    );
+    vector lastTangLubrForce_;
 
     public:
 
     // Constructors ------------------------------------------------
-    verletList();
+    dlvoContactInfo
+    (
+        ibContactClass& cClass,
+        ibContactClass& tClass,
+        ibContactVars& cVars,
+        ibContactVars& tVars,
+        List<std::shared_ptr<boundBox>> cBboxes,
+        List<std::shared_ptr<boundBox>> tBboxes
+    );
 
     // Destructors -------------------------------------------------
-    virtual ~verletList();
+    ~dlvoContactInfo();
+    //-----------------------------Func-------------------------------//
 
-    // Add new body to be tracked by Verlet list
-    virtual void addBodyToVList(immersedBody& ib) = 0;
-
-    // Remove body from Verlet list
-    void removeBodyFromVList(immersedBody& ib);
-
-    // More efficient initial soting
-    void initialSorting();
-
-    // Update positions of bounding points
-    // sort the list
-    // solve potential intersections
-    virtual void update(PtrList<immersedBody>& ibs) = 0;
-
-    cPairHasSet::iterator begin()
+    const Tuple2<label, label>& getCPair()
     {
-        return posCntList_.begin();
+        return contactPair_;
     }
 
-    cPairHasSet::iterator end()
+    ibContactClass& getcClass()
     {
-        return posCntList_.end();
+        return cIbContactClass_;
+    }
+
+    ibContactClass& gettClass()
+    {
+        return tIbContactClass_;
+    }
+
+    ibContactVars& getcVars()
+    {
+        return cIbContactVars_;
+    }
+
+    ibContactVars& gettVars()
+    {
+        return tIbContactVars_;
+    }
+
+    List<std::shared_ptr<boundBox>>& getcBboxes()
+    {
+        return cBboxes_;
+    }
+
+    List<std::shared_ptr<boundBox>>& gettBboxes()
+    {
+        return tBboxes_;
+    }
+
+    vector& getLastTangLubrForce()
+    {
+        return lastTangLubrForce_;
     }
 };
 

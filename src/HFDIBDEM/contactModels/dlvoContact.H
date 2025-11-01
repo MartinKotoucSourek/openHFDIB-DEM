@@ -26,17 +26,26 @@ InNamspace
     contactModel
 
 Description
-    Static class for storing wall material information
+    methods to solve particle-particle contact
+
+SourceFiles
+    dlvoContact.C
 
 Contributors
     Martin Isoz (2019-*), Martin Kotouč Šourek (2019-*),
     Ondřej Studeník (2020-*)
 \*---------------------------------------------------------------------------*/
 
-#ifndef cyclicPlaneInfo_H
-#define cyclicPlaneInfo_H
+#ifndef dlvoContact_H
+#define dlvoContact_H
 
-#include <map>
+#include "dictionary.H"
+#include "fvCFD.H"
+// #include "fvMesh.H"
+
+#include "dlvoContactInfo.H"
+
+#include <optional>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,56 +53,38 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                      Class wallPlaneInfo Declaration
+                 Namespace contactModel functions Declaration
 \*---------------------------------------------------------------------------*/
 
-
-class cyclicPlaneInfo
+namespace contactModel
 {
-    public:
 
-    static const HashTable<List<vector>,string,Hash<string>>& getCyclicPlaneInfo()
-    {
-        return cyclicPlaneInfo_;
-    }
+    Tuple2<forces,forces> solveDlvoContact_ArbShape(
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
 
-    static const vector getCyclicTransVec(const string& cyclicPatch)
-    {
-        const string& cyclicPatchNeighbour = cyclicPatchPairs_[cyclicPatch];
-
-        vector transVec = cyclicPlaneInfo_[cyclicPatchNeighbour][1] - cyclicPlaneInfo_[cyclicPatch][1];
-
-        // Info << "transVec1: " << transVec << endl;
-
-        transVec = cyclicPlaneInfo_[cyclicPatch][0] * (transVec & cyclicPlaneInfo_[cyclicPatch][0]);
-
-        // Info << "transVec2: " << transVec << endl;
-
-        return transVec;
-    }
-
-    static void insert
+    Tuple2<forces,forces> solveDlvoContact_Sphere
     (
-        const string& cyclicPatch,
-        const vector& patchNVec,
-        const vector& planePoint,
-        const string& cyclicPatchNeighbour
-    )
-    {
-        List<vector> planeInfo{{patchNVec / mag(patchNVec),planePoint}};
-        cyclicPlaneInfo_.insert(cyclicPatch,planeInfo);
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
 
-        if (cyclicPatchPairs_.find(cyclicPatch) == cyclicPatchPairs_.end())
-        {
-            cyclicPatchPairs_.insert(std::pair<string,string>(cyclicPatch,cyclicPatchNeighbour));
-        }
-    };
+    Tuple2<forces,forces> solveDlvoContact_Cluster
+    (
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
 
-    //- Hash table for storing wall material information
-    static HashTable<List<vector>,string,Hash<string>> cyclicPlaneInfo_;
-    static std::map<string, string> cyclicPatchPairs_;
-
-};
+    Tuple2<forces,forces> solveDlvoContact(
+        dlvoContactInfo& cInfo,
+        dimensionedScalar nuF,
+        dimensionedScalar rhoF
+    );
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

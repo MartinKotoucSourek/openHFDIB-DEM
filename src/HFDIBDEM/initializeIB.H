@@ -161,3 +161,8 @@ wallCntInfo_.reset(new wallContactInfo
     ibContactClass_(),
     ibCntVars_()
 ));
+
+if (dlvoInfo::isActive())
+{
+    dlvo_ = std::make_shared<dlvoClass>(dlvoInfo::getCutOff());
+}

@@ -139,36 +139,6 @@ void verletList::addCPairToCntNList(
     }
 }
 //---------------------------------------------------------------------------//
-void verletList::addBodyToVList(immersedBody& ib)
-{
-    List<std::shared_ptr<boundBox>> bBoxes = ib.getGeomModel().getBBoxes();
-
-    forAll(bBoxes, bBox)
-    {
-        verletBoxes_.push_back(verletBox::create(
-            ib.getBodyId(),
-            bBoxes[bBox],
-            ib.getbodyOperation()==0
-        ));
-
-        verletBoxes_.back()->setVerletPoints();
-
-        forAll(verletLists_, vListI)
-        {
-            if(vListI != emptyDim)
-            {
-                verletLists_[vListI].push_back(
-                    verletBoxes_.back()->getMinPoint()
-                );
-
-                verletLists_[vListI].push_back(
-                    verletBoxes_.back()->getMaxPoint()
-                );
-            }
-        }
-    }
-}
-//---------------------------------------------------------------------------//
 void verletList::removeBodyFromVList(immersedBody& ib)
 {
     forAll (verletLists_, coordI)
@@ -256,46 +226,6 @@ void verletList::initialSorting()
                         return vPoint->getBodyId() == curIb;
                     }
                 );
-            }
-        }
-    }
-}
-//---------------------------------------------------------------------------//
-void verletList::update(PtrList<immersedBody>& ibs)
-{
-    forAll(ibs, ibi)
-    {
-        ibs[ibi].getGeomModel().getBBoxes();
-    }
-
-    // use insertion sort to sort the neighbour list
-    // besides the first sorting, this is O(N) efficient
-    for (label coord = 0; coord < 3; ++coord)
-    {
-        if (!verletLists_[coord].empty())
-        {
-            auto it2 = verletLists_[coord].begin();
-            auto it1 = it2++;
-
-            while(true)
-            {
-                if((*it1)->getPoint()[coord]
-                    > (*it2)->getPoint()[coord])
-                {
-                    swapVerletPoints(*it1, *it2, coord);
-                    std::swap(*it1, *it2);
-
-                    if (it1 != verletLists_[coord].begin())
-                    {
-                        it2 = it1--;
-                        continue;
-                    }
-                }
-                it1 = it2++;
-                if (it2 == verletLists_[coord].end())
-                {
-                    break;
-                }
             }
         }
     }

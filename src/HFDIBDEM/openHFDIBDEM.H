@@ -70,6 +70,11 @@ Contributors
 //OS Time efficiency Testing
 #include "clockTime.H"
 
+#include "vCntcList.H"
+#include "vDlvoList.H"
+
+#include "brownianForce.H"
+#include <optional>
 
 namespace Foam
 {
@@ -118,13 +123,27 @@ namespace Foam
     // mesh geometric directions
     vector geometricD_;
 
-    // Verlet list object
-    verletList verletList_;
+    // Verlet contact list object
+    vCntcList vCntcList_;
+
+    // Verlet DLVO list object
+    vDlvoList vDlvoList_;
 
     //record simulation for start from lastTime possibility
     bool recordSimulation_;
     bool recordFirstTimeStep_ = false;
     word recordOutDir_;
+
+    dimensionedScalar nuF_;
+    dimensionedScalar rhoF_;
+
+    label minPimpleLoops_ = 0;
+    scalar theta_ = 1.0; // relaxation factor for the fluid-solid coupling
+    HashTable<vector, Tuple2<label, label>, Hash<Tuple2<label, label>>> dlvoPairs_;
+
+    std::shared_ptr<brownianForce> brownianForce_;
+
+    bool useWallDlvo_ = false;
 
     public:
 
@@ -145,6 +164,11 @@ namespace Foam
     // scalar demItegrationTime_ = 0.0;
 
     void initialize(volScalarField& body,volVectorField& U,volScalarField& refineF,label recomputeM0, word runTime);
+
+    label minPimpleLoops()
+    {
+        return minPimpleLoops_;
+    }
 
     void createBodies
     (
@@ -173,7 +197,7 @@ namespace Foam
 
     void recreateBodies(volScalarField& body,volScalarField& refineF);
     // void for DEM inner-loops
-    void updateDEM(volScalarField& body,volScalarField& refineF);
+    void updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f);
 
     prtContactInfo& getPrtcInfo(Tuple2<label,label> cPair);
 
@@ -213,7 +237,7 @@ namespace Foam
     void writeFirtsTimeBodiesInfo();
 
     void setSolverInfo();
-    
+
     void updateBodiesRhoF(volScalarField& rho);
     void updateBodiesRhoF(scalar rho);
     void updateBodiesRhoF
@@ -224,6 +248,7 @@ namespace Foam
         const scalar rho2
     );
 
+    void setSolverInfo();
  };
 }
 

@@ -41,6 +41,7 @@ Description
 #include "fvOptions.H"
 
 #include "pimpleControl.H"
+#include "hfdibPimpleControl.H"
 #include "CorrectPhi.H"
 #include "fvOptions.H"
 #include "localEulerDdtScheme.H"
@@ -60,7 +61,11 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "initContinuityErrs.H"
-    #include "createDyMControls.H"
+
+    // HFDIBDEM is needed in createHfdibDyMControls
+    openHFDIBDEM  HFDIBDEM(mesh);
+    #include "createHfdibDyMControls.H"
+
     #include "createFields.H"
     #include "createUfIfPresent.H"
 
@@ -77,7 +82,6 @@ int main(int argc, char *argv[])
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info << "\nInitializing HFDIBDEM\n" << endl;
-    openHFDIBDEM  HFDIBDEM(mesh);
     HFDIBDEM.initialize(lambda,U,refineF,maxRefinementLevel,runTime.timeName());
     #include "initialMeshRefinement.H"
 
@@ -119,11 +123,11 @@ int main(int argc, char *argv[])
         clockTime preUpdateBodiesTime; // OS time efficiency testing
         HFDIBDEM.preUpdateBodies(lambda);
         suplTime_ += preUpdateBodiesTime.timeIncrement(); // OS time efficiency testing
-        
+
         // --- pre-compute gradient of lambda field (force updates)
         volVectorField gradLambda(fvc::grad(lambda));
-        gradLambda.correctBoundaryConditions();        
-        
+        gradLambda.correctBoundaryConditions();
+
         // --- construct surface field where the momentum source should
         //     be switched on
         forAll(surface, sI)
@@ -167,8 +171,8 @@ int main(int argc, char *argv[])
                     lambda *= 0.0;
 
                     HFDIBDEM.recreateBodies(lambda,refineF);
-                    
-                    volVectorField gradLambda(fvc::grad(lambda));                    
+
+                    volVectorField gradLambda(fvc::grad(lambda));
                     forAll(surface, sI)
                     {
                         if (lambda[sI] > thrSurf)
@@ -199,13 +203,13 @@ int main(int argc, char *argv[])
         CFDTime_ += pimpleRunClockTime.timeIncrement();
         Info << "updating HFDIBDEM" << endl;
         clockTime postUpdateBodiesTime;
-        
+
         fDragVisc = (f - fvc::grad(p))*rho;
         fDragPress= -gradLambda*p*rho;
-        
+
         fDragPress.correctBoundaryConditions();
         fDragVisc.correctBoundaryConditions();
-        
+
         for (label pass=0; pass<=fDragSmoothingIter; pass++)
         {
             fDragPress = fvc::average(fvc::interpolate(fDragPress));
@@ -213,7 +217,7 @@ int main(int argc, char *argv[])
             fDragPress.correctBoundaryConditions();
             fDragVisc.correctBoundaryConditions();
         }
-        
+
         HFDIBDEM.postUpdateBodies(lambda,gradLambda,fDragPress,fDragVisc);
         suplTime_ += postUpdateBodiesTime.timeIncrement();
 
@@ -243,7 +247,7 @@ int main(int argc, char *argv[])
             << nl << endl;
 
         Info<< " CFDTime_                 = " << CFDTime_             << " s \n" <<
-               " Solver suplementary time = " << suplTime_            << " s \n" << 
+               " Solver suplementary time = " << suplTime_            << " s \n" <<
                " DEMTime_                 = " << DEMTime_             << " s \n" << endl;
     }
 

@@ -46,6 +46,7 @@ Contributors
 #include "cyclicPlaneInfo.H"
 #include "contactModelInfo.H"
 #include "solverInfo.H"
+#include "dlvoInfo.H"
 
 namespace Foam
 {
@@ -62,6 +63,9 @@ HashTable<scalar,string,Hash<string>> interAdhesion::matInterAdh_ =
 
 HashTable<materialInfo,string,Hash<string>> wallMatInfo::wallMatInfo_ =
     HashTable<materialInfo,string,Hash<string>>();
+
+HashTable<wallDlvoModel,string,Hash<string>> wallMatInfo::wallDlvoInfo_ =
+    HashTable<wallDlvoModel,string,Hash<string>>();
 
 HashTable<List<vector>,string,Hash<string>> wallPlaneInfo::wallPlaneInfo_ =
     HashTable<List<vector>,string,Hash<string>>();
@@ -81,6 +85,22 @@ bool solverInfo::onlyDEM_ = false;
 bool contactModelInfo::useChenRotationalModel_ = false;
 bool contactModelInfo::useMindlinRotationalModel_ = false;
 bool contactModelInfo::increasedDamping_ = false;
+
+bool   dlvoInfo::active_ = false;
+bool   dlvoInfo::useDLVO_ = true;
+bool   dlvoInfo::useTangLubr_ = true;
+bool   dlvoInfo::useTransLubr_ = true;
+scalar dlvoInfo::A_ = 1e-20;
+scalar dlvoInfo::eps0_ = 8.854e-12;
+scalar dlvoInfo::epsR_ = 50;
+scalar dlvoInfo::zeta_ = 2e-2;
+scalar dlvoInfo::recDebay_ = 1.0 / 2.5e-8;
+scalar dlvoInfo::factorZ = 0;
+scalar dlvoInfo::cutOff_ = 1e-5;
+scalar dlvoInfo::minSurfDist_ = 1e-10;
+scalar dlvoInfo::tanLubrC_ = 0.1;
+scalar dlvoInfo::tanLubrRelax_ = 1;
+scalar dlvoInfo::charCellSize_ = 0.1;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
