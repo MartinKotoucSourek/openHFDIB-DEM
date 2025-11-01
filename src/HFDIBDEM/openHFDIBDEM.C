@@ -666,16 +666,7 @@ void openHFDIBDEM::postUpdateBodies
         if (immersedBodies_[bodyId].getIsActive())
         {
             immersedBodies_[bodyId].clearIntpInfo();
-        }
-    }
-
-    updateBodiesCoupling(body,f);
-
-    forAll (immersedBodies_,bodyId)
-    {
-        if (immersedBodies_[bodyId].getIsActive())
-        {
-            immersedBodies_[bodyId].resetOldMovementVars();
+            immersedBodies_[bodyId].postPimpleUpdateImmersedBody(body,f);
         }
     }
 }
@@ -879,7 +870,10 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         volVectorField cUi = Ui;
         interpolateIB(U, cUi, body);
         volVectorField cf = f + theta_ * surface*(cUi - U)/(mesh_.time().deltaT() * step);
-        updateBodiesCoupling(body, cf);
+        forAll (immersedBodies_,bodyId)
+        {
+            immersedBodies_[bodyId].updateCoupling(body, cf);
+        }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos
             << " DEM step: " << step << endl;
@@ -1531,12 +1525,11 @@ void openHFDIBDEM::updateFSCoupling
     volVectorField& f
 )
 {
-    updateBodiesCoupling(body, f);
     forAll (immersedBodies_,bodyId)
     {
         if (immersedBodies_[bodyId].getIsActive())
         {
-            immersedBodies_[bodyId].pimpleMovementUpdate();
+            immersedBodies_[bodyId].pimpleUpdate(body,f);
         }
     }
 }
@@ -1715,28 +1708,5 @@ void openHFDIBDEM::writeFirtsTimeBodiesInfo()
 void openHFDIBDEM::setSolverInfo()
 {
     solverInfo::setOnlyDEM(true);
-}
-//---------------------------------------------------------------------------//
-void openHFDIBDEM::updateBodiesCoupling
-(
-    volScalarField& body,
-    volVectorField& f
-)
-{
-    forAll (immersedBodies_,bodyId)
-    {
-        if (immersedBodies_[bodyId].getIsActive())
-        {
-            immersedBodies_[bodyId].updateCoupling(body,f);
-        }
-    }
-
-    forAll (immersedBodies_,bodyId)
-    {
-        if (immersedBodies_[bodyId].getIsActive())
-        {
-            immersedBodies_[bodyId].syncCouplingForces();
-        }
-    }
 }
 //---------------------------------------------------------------------------//

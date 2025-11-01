@@ -227,12 +227,6 @@ namespace Foam
     void writeFirtsTimeBodiesInfo();
 
     void setSolverInfo();
-
-    void updateBodiesCoupling
-    (
-        volScalarField& body,
-        volVectorField& f
-    );
  };
 }
 

@@ -470,6 +470,18 @@ void immersedBody::constructRefineField
     }
 }
 //---------------------------------------------------------------------------//
+void immersedBody::postPimpleUpdateImmersedBody
+(
+    volScalarField& body,
+    volVectorField& f
+)
+{
+    // update Vel_, Axis_ and omega_
+    updateCoupling(body,f);
+
+    resetOldMovementVars();
+}
+//---------------------------------------------------------------------------//
 void immersedBody::updateCoupling
 (
     volScalarField& body,
@@ -478,7 +490,6 @@ void immersedBody::updateCoupling
 {
     vector FV(vector::zero);
     vector TA(vector::zero);
-    FCoupling_ = forces(FV, TA);
 
     List<DynamicLabelList> intLists;
     List<DynamicLabelList> surfLists;
@@ -516,17 +527,6 @@ void immersedBody::updateCoupling
                 *mesh_.V()[cellI];
         }
     }
-
-    // Info << "-- body "<< bodyId_ <<" Force FV  : " << FV << endl;
-    FCoupling_ = forces(FV, TA);
-}
-//---------------------------------------------------------------------------//
-void immersedBody::syncCouplingForces
-(
-)
-{
-    vector FV(FCoupling_.F);
-    vector TA(FCoupling_.T);
 
     reduce(FV, sumOp<vector>());
     reduce(TA, sumOp<vector>());
@@ -1048,8 +1048,13 @@ void immersedBody::initSyncWithFlow(const volVectorField& U)
     printStats();
 }
 //---------------------------------------------------------------------------//
-void immersedBody::pimpleMovementUpdate()
+void immersedBody::pimpleUpdate
+(
+    volScalarField& body,
+    volVectorField& f
+)
 {
+    updateCoupling(body, f);
     updateMovement(VelOld_, AxisOld_, omegaOld_);
 }
 //---------------------------------------------------------------------------//

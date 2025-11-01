@@ -206,11 +206,6 @@ namespace Foam
             volVectorField& f
         );
 
-        // update fluid-solid coupling
-        void syncCouplingForces
-        (
-        );
-
         // move immersed body
         void moveImmersedBody
         (
@@ -397,6 +392,12 @@ namespace Foam
             ibContactClass_->setWallContact(inContact);
         }
 
+        void postPimpleUpdateImmersedBody
+        (
+            volScalarField& body,
+            volVectorField& f
+        );
+
         // compute the mean and maximal body courant number (based on
         // the body linear velocity)
         void computeBodyCoNumber();
@@ -438,7 +439,11 @@ namespace Foam
 
         void initSyncWithFlow(const volVectorField& U);
 
-        void pimpleMovementUpdate();
+        void pimpleUpdate
+        (
+            volScalarField& body,
+            volVectorField& f
+        );
 
         const bool& getSDBasedLambda() const
         {
