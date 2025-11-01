@@ -52,7 +52,7 @@ Contributors
 
 #include "fvcSmooth.H"
 #include "fvMeshSubset.H"
-#include "solverInfo.H" 
+#include "solverInfo.H"
 
 #define ORDER 2
 
@@ -132,7 +132,7 @@ void immersedBody::createImmersedBody
         octreeField_,
         cellPoints_
     );
-    
+
     const List<DynamicLabelList>& surfCells = geomModel_->getSurfaceCellList();
     haloCells_[Pstream::myProcNo()] = surfCells[Pstream::myProcNo()];
 
@@ -488,13 +488,13 @@ void immersedBody::postPimpleUpdateImmersedBody
 {
     // update Vel_, Axis_ and omega_
     updateCoupling(body,fPress,fVisc);
-    
+
     // move FCouplingOld_ here -> update
 
     Vel_ = VelOld_;
     Axis_ = AxisOld_;
     omega_ = omegaOld_;
-    
+
     FCouplingOld_ = FCoupling_;
 }
 //---------------------------------------------------------------------------//
@@ -504,16 +504,16 @@ void immersedBody::updateHaloCells
 )
 {
     // clear halo cells
-    haloCells_[Pstream::myProcNo()].clear(); 
-    
+    haloCells_[Pstream::myProcNo()].clear();
+
     // initialize the marchingCube algorithm
     autoPtr<DynamicLabelList> nextToCheck(new DynamicLabelList);
     autoPtr<DynamicLabelList> auxToCheck(new DynamicLabelList);
-        
+
     // initialize halo cells
     nextToCheck().append(geomModel_->getSurfaceCellList()[Pstream::myProcNo()]);
     labelHashSet checkedCells;
-            
+
     // run the marchingCube
     label iterCount(0);
     label iterMax(mesh_.nCells());
@@ -542,51 +542,6 @@ void immersedBody::updateHaloCells
         iterCount++;
     }
 }
-void immersedBody::updateHaloCells
-(
-    volVectorField& gradBody,
-    volScalarField& body
-)
-{
-    // clear halo cells
-    haloCells_[Pstream::myProcNo()].clear(); 
-    
-    // initialize the marchingCube algorithm
-    autoPtr<DynamicLabelList> nextToCheck(new DynamicLabelList);
-    autoPtr<DynamicLabelList> auxToCheck(new DynamicLabelList);
-        
-    // initialize halo cells
-    nextToCheck().append(geomModel_->getSurfaceCellList()[Pstream::myProcNo()]);
-    labelHashSet checkedCells;
-            
-    // run the marchingCube
-    label iterCount(0);
-    label iterMax(mesh_.nCells());
-    while(nextToCheck().size() > 0 && iterCount < iterMax)
-    {
-        auxToCheck().clear();
-        forAll(nextToCheck(), cellI)
-        {
-            label cellId = nextToCheck()[cellI];
-            if(!checkedCells.found(cellId))
-            {
-                checkedCells.insert(cellId);
-                vector pCVec(mesh_.C()[cellId] - geomModel_->getCoM());
-                //~ if(mag(gradBody[cellI]) > SMALL && (-gradBody[cellI] & pCVec) > SMALL)
-                if(mag(gradBody[cellId]) > SMALL and body[cellId] < SMALL)
-                {
-                    //~ Pout << mag(gradBody[cellId])*Foam::pow(mesh_.V()[cellId],0.3333) << endl;
-                    haloCells_[Pstream::myProcNo()].append(cellId);
-                    auxToCheck().append(mesh_.cellCells()[cellId]);
-                }
-            }
-        }
-        autoPtr<DynamicLabelList> helpPtr(nextToCheck.ptr());
-        nextToCheck.reset(auxToCheck.ptr());
-        auxToCheck = std::move(helpPtr);
-        iterCount++;
-    }
-}
 //---------------------------------------------------------------------------//
 void immersedBody::updateCoupling
 (
@@ -597,20 +552,20 @@ void immersedBody::updateCoupling
 {
     vector FV(vector::zero);
     vector TA(vector::zero);
-    
+
     // calcualate viscous force and torque
     const vector& CoM(geomModel_->getCoM());
-    
+
     //~ const DynamicLabelList& intList(getInternalCellList()[Pstream::myProcNo()]);
     const DynamicLabelList& surfList(getSurfaceCellList()[Pstream::myProcNo()]);
 
     //~ forAll(intList, i)
     //~ {
         //~ label cellI = intList[i];
-        
+
         //~ vector fCellPress = fPress[cellI];
         //~ vector fCellVisc  = fVisc[cellI];
-        
+
         //~ FV -= (fCellPress + fCellVisc)*mesh_.V()[cellI];
         //~ FV -= (fCellVisc)*mesh_.V()[cellI];
         //~ TA -= ((mesh_.C()[cellI] - CoM)^fCellVisc)*mesh_.V()[cellI];
@@ -619,40 +574,40 @@ void immersedBody::updateCoupling
     forAll(surfList, i)
     {
         label cellI = surfList[i];
-        
+
         vector fCellPress = body[cellI]*fPress[cellI];
         vector fCellVisc  = body[cellI]*fVisc[cellI];
-        
+
         FV -= (fCellPress + fCellVisc)*mesh_.V()[cellI];
         TA -= ((mesh_.C()[cellI] - CoM)^fCellVisc)*mesh_.V()[cellI];
     }
-    
-    
+
+
     const DynamicLabelList& haloList(haloCells_[Pstream::myProcNo()]);
-    
+
     forAll(haloList, i)
     {
         label cellI = haloList[i];
-        
+
         vector fCellPress = fPress[cellI];
         vector fCellVisc  = fVisc[cellI];
-        
+
         // scalar scaleFact  = Foam::pow(mesh_.V()[cellI],0.3333);
         // scalar scaleFact  = max(1.0-12.0*Foam::pow(mag(body[cellI]-0.5),4.0),0);//increase weight of surfCells
         scalar scaleFact  = Foam::exp(-Foam::pow(body[cellI] - 0.5,4.0)/(2.0*Foam::pow(0.15,2.0)));//increase weight of surfCells
-        
-        
+
+
         FV -= scaleFact*(fCellPress + fCellVisc)*mesh_.V()[cellI];
         TA -= scaleFact*((mesh_.C()[cellI] - CoM)^fCellVisc)*mesh_.V()[cellI];
     }
-    
+
     reduce(FV, sumOp<vector>());
     reduce(TA, sumOp<vector>());
-    
+
     FCoupling_ = couplingHistCoef_*forces(FV, TA) + (1.0-couplingHistCoef_)*FCouplingOld_;
-    
+
     couplingHistCoef_ = max(couplingHistCoef_*0.95, 0.5);
-    
+
     Info << "======= COUPLING COEF IS: " << couplingHistCoef_ << endl;
 }
 //---------------------------------------------------------------------------//
@@ -687,7 +642,7 @@ void immersedBody::updateMovementComp
 
         const uniformDimensionedVectorField& g =
             mesh_.lookupObject<uniformDimensionedVectorField>("g");
-            
+
         vector FG(vector::zero);
         if(!solverInfo::getOnlyDEM())
             FG = geomModel_->getM0()*(1.0-rhoF_.value()
@@ -712,9 +667,9 @@ void immersedBody::updateMovementComp
             InfoH << iB_Info <<"-- body "<< bodyId_ <<" Acting Force    : " << F << endl;
             InfoH << iB_Info <<"-- body "<< bodyId_ <<" Coupling Force  : " << FCoupling_.F << endl;
             InfoH << iB_Info <<"-- body "<< bodyId_ <<" G-B Force       : " << FG << endl;
-            
+
             a_  = F/(geomModel_->getM0());
-            
+
             // update body linear velocity
             Vel_ = Vel + deltaT*a_;
             InfoH << iB_Info <<"-- body "<< bodyId_ <<" accelaration  : " << a_ << endl;
@@ -1278,53 +1233,53 @@ void immersedBody::updateRhoF                                           //varian
 {
     scalar rhoFAux(0);
     scalar bodyVol(0);
-    
+
     List<DynamicLabelList> intLists;
     List<DynamicLabelList> surfLists;
     DynamicVectorList refCoMList;
-    
+
     geomModel_->getReferencedLists(
         intLists,
         surfLists,
         refCoMList
     );
-    
+
     // Note (MI): in this case, we do not want to take into account the
     //            fluid composition inside the particle
     // - we calculate the density of the surrounding fluid only from
     //   surface cells
     // - in this version, no correction for the presence of solid in the
     //   surface cells is taken into account
-    
-    // compute the weighted average of density    
+
+    // compute the weighted average of density
     //~ forAll (intLists, i)
     //~ {
         //~ DynamicLabelList& intListI = intLists[i];
         //~ forAll (intListI, intCell)
         //~ {
             //~ label cellI = intListI[intCell];
-            
+
             //~ rhoFAux += rho[cellI]*mesh_.V()[cellI];
             //~ bodyVol += mesh_.V()[cellI];
         //~ }
     //~ }
-    
+
     forAll (surfLists, i)
     {
         DynamicLabelList& surfListI = surfLists[i];
         forAll (surfListI, surfCell)
         {
             label cellI = surfListI[surfCell];
-            
+
             rhoFAux += rho[cellI]*mesh_.V()[cellI];
             bodyVol += mesh_.V()[cellI];
         }
     }
-    
+
     reduce(rhoFAux, sumOp<scalar>());
     reduce(bodyVol, sumOp<scalar>());
-    
-    
+
+
     rhoF_ = rhoFAux/bodyVol;
     Info << "Body " << bodyId_ << ": rhoF = " << rhoF_ << endl;
 }
@@ -1332,7 +1287,7 @@ void immersedBody::updateRhoF
 (
     scalar rho
 )
-{    
+{
     rhoF_ = rho;
 }
 void immersedBody::updateRhoF                                           //variant_2 for VOF
@@ -1345,17 +1300,17 @@ void immersedBody::updateRhoF                                           //varian
 {
     scalar rhoFAux(0);
     scalar bodyVol(0);
-    
+
     List<DynamicLabelList> intLists;
     List<DynamicLabelList> surfLists;
     DynamicVectorList refCoMList;
-    
+
     geomModel_->getReferencedLists(
         intLists,
         surfLists,
         refCoMList
     );
-    
+
     // Note (MI): in this case, we do not want to take into account the
     //            fluid composition inside the particle
     // - we calculate the density of the surrounding fluid only from
@@ -1364,27 +1319,27 @@ void immersedBody::updateRhoF                                           //varian
     //   field computation through a simple correction (alphaF)
     // - this is probrably/most definitely not correct but might improve
     //   the behavior over the variant _1
-    
+
     forAll (surfLists, i)
     {
         DynamicLabelList& surfListI = surfLists[i];
         forAll (surfListI, surfCell)
         {
             label cellI = surfListI[surfCell];
-            
+
             scalar  alphaF = min(alpha[cellI]/(1.0 - body[cellI]), 1.0);
-            
+
             rhoFAux += (alphaF*rho1 + (1.0 - alphaF*rho2))*mesh_.V()[cellI];
             bodyVol += mesh_.V()[cellI];
         }
     }
-    
+
     reduce(rhoFAux, sumOp<scalar>());
     reduce(bodyVol, sumOp<scalar>());
-    
-    
+
+
     rhoF_ = rhoFAux/bodyVol;
     Info << "Body " << bodyId_ << ": rhoF = " << rhoF_ << endl;
-    
-    
+
+
 }

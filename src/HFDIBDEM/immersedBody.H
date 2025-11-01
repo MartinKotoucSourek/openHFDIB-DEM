@@ -152,8 +152,8 @@ namespace Foam
         );
 
         // update fluid-solid coupling
-        List<DynamicLabelList> haloCells_; 
-        
+        List<DynamicLabelList> haloCells_;
+
         void updateCoupling
         (
             volScalarField& body,
@@ -208,9 +208,9 @@ namespace Foam
         (
             scalar deltaT = -1.0
         );
-        
+
         void printBodyInfo();
-        
+
         //update body movement based on acting forces
         void updateMovement
         (
@@ -264,17 +264,12 @@ namespace Foam
             DynamicLabelList cellsToIterate,
             DynamicLabelList startLevel
         );
-        
+
         void updateHaloCells
         (
             volVectorField& gradBody
         );
-        void updateHaloCells
-        (
-            volVectorField& gradBody,
-            volScalarField& body
-        );
-        
+
         void resetCouplingHistory()
         {
             couplingHistCoef_ = 1.0;
@@ -513,7 +508,7 @@ namespace Foam
             AxisOld_  = Axis_;
             omegaOld_ = omega_;
         }
-        
+
         // function to update the average fluid density on the body
         void updateRhoF(volScalarField& rho);
         void updateRhoF(scalar rho);
@@ -535,7 +530,7 @@ namespace Foam
         }
 
         vectorField getUatIbPoints();
-        
+
         const List<DynamicLabelList>& getHaloCells() const
         {
             return haloCells_;
