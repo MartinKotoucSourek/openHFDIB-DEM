@@ -197,7 +197,7 @@ namespace Foam
 
     void recreateBodies(volScalarField& body,volScalarField& refineF);
     // void for DEM inner-loops
-    void updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f);
+    void updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f, volVectorField & gradLambda, volScalarField & p, dimensionedScalar const& rho, volVectorField & fDragPress, volVectorField & fDragVisc);
 
     prtContactInfo& getPrtcInfo(Tuple2<label,label> cPair);
 
@@ -247,8 +247,6 @@ namespace Foam
         const scalar rho1,
         const scalar rho2
     );
-
-    void setSolverInfo();
  };
 }
 

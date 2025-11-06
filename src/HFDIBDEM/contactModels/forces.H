@@ -87,12 +87,6 @@ struct forces{
         F -= rhs.F;
         T -= rhs.T;
     }
-    
-    void operator*=(const scalar& coef)
-    {
-        F *= coef;
-        T *= coef;
-    }
 
     void operator*=(const scalar& rhs)
     {
@@ -114,18 +108,18 @@ struct forces{
 };
 
 // symmetric multiplication by scalar
-inline forces operator*(const forces& f, const scalar& coef) 
+inline forces operator*(const forces& f, const scalar& coef)
 {
     return forces(f.F * coef, f.T * coef);
 }
 
-inline forces operator*(const scalar& coef, const forces& f) 
+inline forces operator*(const scalar& coef, const forces& f)
 {
     return f * coef;  // use the previously defined operator
 }
 
 // addition operator
-inline forces operator+(const forces& f, const forces& g) 
+inline forces operator+(const forces& f, const forces& g)
 {
     return forces(f.F + g.F, f.T + g.T);
 }

@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         // addRemoveTime_ += addRemoveTime.timeIncrement();
 
         // clockTime updateDEMTime;
-        HFDIBDEM.updateDEM(lambda,refineF, U, U, f);
+        // HFDIBDEM.updateDEM(lambda,refineF, U, U, f, gradLambda, lambda, rho, f, f);
         // updateDEMTime_ += updateDEMTime.timeIncrement();
 
         Info << "updated HFDIBDEM" << endl;

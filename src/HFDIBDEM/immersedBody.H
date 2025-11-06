@@ -101,6 +101,9 @@ namespace Foam
         // precalculate cellPoints for better performace
         List<labelList>& cellPoints_;
 
+        // update fluid-solid coupling
+        List<DynamicLabelList> haloCells_;
+
         // rotation axis
         vector Axis_;
         vector AxisOld_;
@@ -160,16 +163,6 @@ namespace Foam
             volVectorField& f
         );
 
-        // update fluid-solid coupling
-        List<DynamicLabelList> haloCells_;
-
-        void updateCoupling
-        (
-            volScalarField& body,
-            volVectorField& fPress,
-            volVectorField& fVisc
-        );
-
         // auxiliary octree variables
         Field<label> octreeField_;
         label cellToStartInCreateIB_;
@@ -215,7 +208,8 @@ namespace Foam
         void updateCoupling
         (
             volScalarField& body,
-            volVectorField& f
+            volVectorField& fPress,
+            volVectorField& fVisc
         );
 
         // move immersed body

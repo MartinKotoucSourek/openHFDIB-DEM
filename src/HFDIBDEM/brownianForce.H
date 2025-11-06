@@ -84,9 +84,9 @@ class brownianForce
 
         vector f = vector
         (
-            sigma * rndGen_.scalarNormal(),
-            sigma * rndGen_.scalarNormal(),
-            sigma * rndGen_.scalarNormal()
+            sigma * rndGen_.sample01<scalar>(),
+            sigma * rndGen_.sample01<scalar>(),
+            sigma * rndGen_.sample01<scalar>()
         );
 
         // Info << "Brownian force: " << f << endl;
@@ -108,7 +108,7 @@ class brownianForce
     muc_(muc),
     rhoF_(rhoF),
     stability_(stability),
-    rndGen_(0)
+    rndGen_(clock::getTime())
     {
         if (lambda_ <= 0 || T_ <= 0)
         {

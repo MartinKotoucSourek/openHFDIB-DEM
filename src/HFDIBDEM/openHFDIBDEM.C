@@ -46,6 +46,8 @@ Contributors
 
 #include "dlvoContactInfo.H"
 
+#include "stringOps.H"
+
 #define ORDER 2
 
 using namespace Foam;
@@ -81,8 +83,8 @@ bodyNames_(HFDIBDEMDict_.lookup("bodyNames")),
 prtcInfoTable_(0),
 stepDEM_(readScalar(HFDIBDEMDict_.lookup("stepDEM"))),
 recordSimulation_(readBool(HFDIBDEMDict_.lookup("recordSimulation"))),
-nuF_(transportProperties_.lookup("nu")),
-rhoF_(transportProperties_.lookup("rho"))
+nuF_("nu", transportProperties_),
+rhoF_("rho", transportProperties_)
 {
     materialProperties::matProps_insert(
         "None",
@@ -307,8 +309,8 @@ rhoF_(transportProperties_.lookup("rho"))
         word dlvoModelStr = "NONE";
         if (patchDic.subDict(patchNames[patchI]).found("dlvoModel"))
         {
-            word dlvoModelStrInput = patchDic.subDict(patchNames[patchI]).lookup("dlvoModel");
-            dlvoModelStr = dlvoModelStrInput.capitalise();
+            word dlvoModelStrInput = word(patchDic.subDict(patchNames[patchI]).lookup("dlvoModel"));
+            dlvoModelStr = Foam::stringOps::upper(dlvoModelStrInput);
             if (dlvoModelStr == "NONE")
             {
                 wallDlvoM = wallDlvoModel::NONE;
@@ -854,7 +856,7 @@ void openHFDIBDEM::writeBodiesInfo()
     }
 }
 //---------------------------------------------------------------------------//
-void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f)
+void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVectorField & U, volVectorField & Ui, volVectorField & f, volVectorField & gradLambda, volScalarField & p, dimensionedScalar const& rho, volVectorField & fDragPress, volVectorField & fDragVisc)
 {
     scalar deltaTime(mesh_.time().deltaT().value());
     scalar pos(0.0);
@@ -880,9 +882,17 @@ void openHFDIBDEM::updateDEM(volScalarField& body,volScalarField& refineF, volVe
         volVectorField cUi = Ui;
         interpolateIB(U, cUi, body);
         volVectorField cf = f + theta_ * surface*(cUi - U)/(mesh_.time().deltaT() * step);
+
+        fDragVisc = (cf - fvc::grad(p))*rho;
+        fDragPress= -gradLambda*p*rho;
+
+        fDragPress.correctBoundaryConditions();
+        fDragVisc.correctBoundaryConditions();
+
+
         forAll (immersedBodies_,bodyId)
         {
-            immersedBodies_[bodyId].updateCoupling(body, cf);
+            immersedBodies_[bodyId].updateCoupling(body, fDragPress, fDragVisc);
         }
 
         InfoH << DEM_Info << " Start DEM pos: " << pos

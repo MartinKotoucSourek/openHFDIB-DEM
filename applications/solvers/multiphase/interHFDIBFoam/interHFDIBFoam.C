@@ -82,17 +82,17 @@ int main(int argc, char *argv[])
     #include "createAlphaFluxes.H"
     #include "initCorrectPhi.H"
     #include "createUfIfPresent.H"
-    
+
 
     if (!LTS)
     {
         #include "CourantNo.H"
         #include "setInitialDeltaT.H"
     }
-    
+
     // hfdib-dem inclusions
     #include "readDynMeshDict.H"
-    
+
     // hfdib-dem code modification
     Info << "\nInitializing HFDIBDEM\n" << endl;
     openHFDIBDEM  HFDIBDEM(mesh);
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         ++runTime;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
-        
+
         // hfdib-dem code modification
         HFDIBDEM.createBodies(lambda,refineF);
         //~ HFDIBDEM.updateBodiesRhoF(rho);
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-            
+
             #include "alphaControls.H"
             #include "alphaEqnSubCycle.H"
 
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
                 turbulence->correct();
             }
         }
-        
+
         // hfdib-dem code modification
         // --- compute viscous forces and update coupling
         volVectorField gradLambda(fvc::grad(lambda));
@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
         //~ scalar omega1(0.5);                                             //formulation weight
         //~ scalar omega1(0.0);                                             //formulation weight
         //~ scalar omega1(1.0);                                             //formulation weight
-        
+
         //~ fDragPress = fvc::grad(p);
         //~ fDragPress = -fvc::grad(lambda)*p;
         //~ fDragPress = -0.0*gradLambda*p;
@@ -209,16 +209,16 @@ int main(int argc, char *argv[])
         //~ fDragVisc += (1.0-omega1)*fvc::div(turbulence->devRhoReff());      //this sign might actually be correct
         //~ fDragPress*= 0.0;
         //~ fDragVisc *= 0.0;
-        
+
         //~ fDragPress = 0.5*f/rho;
         //~ fDragVisc  = fDragPress;
-        
+
         fDragPress = -gradLambda*p;
-        
+
         volTensorField gradU = fvc::grad(U);
         volTensorField tau = -mixture.mu()*(gradU + gradU.T());
         fDragVisc = -gradLambda & tau;
-        
+
         //~ fDragPress /= rho;
         //~ fDragVisc  /= rho;
         for (label pass=0; pass<=fDragSmoothingIter; pass++)
@@ -228,15 +228,15 @@ int main(int argc, char *argv[])
             fDragPress.correctBoundaryConditions();
             fDragVisc.correctBoundaryConditions();
         }
-        
+
         HFDIBDEM.postUpdateBodies(lambda,gradLambda,fDragPress,fDragVisc);
         HFDIBDEM.addRemoveBodies(lambda,U,refineF);
         HFDIBDEM.updateBodiesRhoF(rho);
-        HFDIBDEM.updateDEM(lambda,refineF);
+        // HFDIBDEM.updateDEM(lambda,refineF, U, Ui, f, gradLambda, p, rho, fDragPress, fDragVisc);
         Info << "updated HFDIBDEM" << endl;
 
         runTime.write();
-        
+
         if(runTime.outputTime())
         {
             HFDIBDEM.writeBodiesInfo();

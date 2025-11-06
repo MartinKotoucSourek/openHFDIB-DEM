@@ -33,94 +33,38 @@ namespace Foam
 }
 
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-Foam::hfdibPimpleControl::hfdibPimpleControl(fvMesh& mesh, openHFDIBDEM& openHFDIBDEM, const word& algorithmName)
-:
-    pimpleNoLoopControl(mesh, algorithmName, *this),
-    hfdibPimpleLoop(static_cast<solutionControl&>(*this), openHFDIBDEM)
+
+bool Foam::hfdibPimpleControl::criteriaSatisfied()
 {
-    read();
-
-    printResidualControls();
-
-    if (nCorrPimple_ > 1)
+    if (openHFDIBDEM_.minPimpleLoops() > 1 && corr_ < openHFDIBDEM_.minPimpleLoops())
     {
-        printCorrResidualControls(nCorrPimple_);
-    }
-
-    Info<< nl << algorithmName << ": Operating solver in "
-        << (mesh.steady() ? "steady-state" : mesh.transient() ? "transient" :
-            "mixed steady-state/transient") << " mode with " << nCorrPimple_
-        << " outer corrector" << (nCorrPimple_ == 1 ? "" : "s") << nl;
-
-    if (nCorrPimple_ == 1)
-    {
-        Info<< algorithmName << ": Operating solver in "
-            << (mesh.steady() ? "SIMPLE" : "PISO") << " mode" << nl;
-    }
-
-    Info<< nl << endl;
-}
-
-
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-
-Foam::hfdibPimpleControl::~hfdibPimpleControl()
-{}
-
-
-// * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-
-bool Foam::hfdibPimpleControl::read()
-{
-    return pimpleNoLoopControl::read() && hfdibPimpleLoop::read();
-}
-
-
-bool Foam::hfdibPimpleControl::loop()
-{
-    read();
-
-    if (!hfdibPimpleLoop::loop(*this))
-    {
-        updateFinal();
-
+        if (debug)
+        {
+            Info<< algorithmName_ << " loop: minimal number of PIMPLE loops "
+                << "not reached yet (" << corr_ << " < "
+                << openHFDIBDEM_.minPimpleLoops() << ")" << endl;
+        }
         return false;
     }
 
-    storePrevIterFields();
-
-    updateFinal();
-
-    return true;
+    return pimpleControl::criteriaSatisfied();
 }
 
 
-bool Foam::hfdibPimpleControl::run(Time& time)
-{
-    read();
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-    if (!endIfConverged(time))
-    {
-        storePrevIterFields();
-    }
-
-    return time.run();
-}
-
-
-bool Foam::hfdibPimpleControl::loop(Time& time)
-{
-    read();
-
-    if (!endIfConverged(time))
-    {
-        storePrevIterFields();
-    }
-
-    return time.loop();
-}
-
+Foam::hfdibPimpleControl::hfdibPimpleControl
+(
+    fvMesh& mesh,
+    openHFDIBDEM& openHFDIBDEM,
+    const word& dictName,
+    const bool verbose
+)
+:
+    pimpleControl(mesh, dictName, verbose),
+    openHFDIBDEM_(openHFDIBDEM)
+{}
 
 // ************************************************************************* //

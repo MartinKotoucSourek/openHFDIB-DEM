@@ -58,10 +58,11 @@ SourceFiles
 #ifndef hfdibPimpleControl_H
 #define hfdibPimpleControl_H
 
-#include "pimpleNoLoopControl.H"
-#include "hfdibPimpleLoop.H"
-#include "singleRegionConvergenceControl.H"
-#include "singleRegionCorrectorConvergenceControl.H"
+#include "pimpleControl.H"
+#include "openHFDIBDEM.H"
+
+//- Declare that pimpleControl will be used
+#define HFDIB_PIMPLE_CONTROL
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -69,14 +70,35 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                         Class hfdibPimpleControl Declaration
+                        Class hfdibPimpleControl Declaration
 \*---------------------------------------------------------------------------*/
 
 class hfdibPimpleControl
 :
-    public pimpleNoLoopControl,
-    public hfdibPimpleLoop
+    public pimpleControl
 {
+    // Private member functions
+
+        //- No copy construct
+        hfdibPimpleControl(const hfdibPimpleControl&) = delete;
+
+        //- No copy assignment
+        void operator=(const hfdibPimpleControl&) = delete;
+
+
+protected:
+
+    // Protected data
+
+        // Solution controls
+
+            //- Reference to openHFDIBDEM
+            openHFDIBDEM& openHFDIBDEM_;
+
+        //- Return true if all convergence checks are satisfied
+        virtual bool criteriaSatisfied();
+
+
 public:
 
     // Static Data Members
@@ -87,49 +109,24 @@ public:
 
     // Constructors
 
-        //- Construct from a mesh and the name of the algorithm
-        hfdibPimpleControl(fvMesh& mesh, openHFDIBDEM& openHFDIBDEM, const word& algorithmName="PIMPLE");
+        //- Construct from mesh and the name of control sub-dictionary
+        hfdibPimpleControl
+        (
+            fvMesh& mesh,
+            openHFDIBDEM& openHFDIBDEM,
+            const word& dictName = "PIMPLE",
+            const bool verbose = true
+        );
 
 
     //- Destructor
-    virtual ~hfdibPimpleControl();
-
-
-    // Member Functions
-
-        // IO
-
-            //- Read controls
-            virtual bool read();
-
-        // Access
-
-            //- Flag to indicate whether to solve the turbulence
-            inline bool turbCorr() const;
-
-        // Evolution
-
-            //- Pimple loop
-            bool loop();
-
-            //- Time run loop
-            bool run(Time& time);
-
-            //- Time loop loop
-            bool loop(Time& time);
+    virtual ~hfdibPimpleControl() = default;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-inline bool Foam::hfdibPimpleControl::turbCorr() const
-{
-    return !turbOnFinalIterOnly() || finalPimpleIter();
-}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
